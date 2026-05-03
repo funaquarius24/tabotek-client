@@ -1,52 +1,101 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { getSiteSettings, saveSiteSettings } from '@/lib/api';
+
 export default function AdminSettingsPage() {
+  const { userSettings, updateSettings } = useAuth();
+
+  const [siteForm, setSiteForm] = useState<Record<string, string | boolean>>({});
+  const [userForm, setUserForm] = useState<Record<string, string | boolean | number>>({});
+  const [savingSite, setSavingSite] = useState(false);
+  const [savingUser, setSavingUser] = useState(false);
+
+  useEffect(() => {
+    getSiteSettings()
+      .then(data => {
+        const form: Record<string, string | boolean> = {};
+        for (const [key, value] of Object.entries(data.settings)) {
+          if (typeof value === 'string' || typeof value === 'boolean') {
+            form[key] = value;
+          }
+        }
+        setSiteForm(form);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const form: Record<string, string | boolean | number> = {};
+    for (const [key, value] of Object.entries(userSettings)) {
+      if (typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number') {
+        form[key] = value;
+      }
+    }
+    setUserForm(form);
+  }, [userSettings]);
+
+  const setSiteField = useCallback((key: string, value: string | boolean) => {
+    setSiteForm(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const setUserField = useCallback((key: string, value: string | boolean | number) => {
+    setUserForm(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleSaveSite = useCallback(async () => {
+    setSavingSite(true);
+    try {
+      await saveSiteSettings({ ...siteForm });
+    } finally {
+      setSavingSite(false);
+    }
+  }, [siteForm]);
+
+  const handleSaveUser = useCallback(async () => {
+    setSavingUser(true);
+    try {
+      await updateSettings({ ...userForm });
+    } finally {
+      setSavingUser(false);
+    }
+  }, [userForm, updateSettings]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-600 mt-2">
-          Configure your site settings, appearance, and integrations.
+          Configure site-wide settings and your personal preferences.
         </p>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Navigation */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <nav className="space-y-1 p-4">
-              <button className="w-full text-left px-4 py-3 bg-blue-50 text-blue-700 font-medium rounded-lg">
+              <a href="#general" className="block px-4 py-3 bg-blue-50 text-blue-700 font-medium rounded-lg">
                 General
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
+              </a>
+              <a href="#appearance" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
                 Appearance
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
-                SEO
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
-                Social Media
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
-                Email
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
-                Analytics
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
-                Security
-              </button>
-              <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
-                Integrations
-              </button>
+              </a>
+              <a href="#editor" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
+                Editor
+              </a>
             </nav>
           </div>
         </div>
-        
-        {/* Right Column - Settings Forms */}
+
         <div className="lg:col-span-2 space-y-6">
-          {/* General Settings */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">General Settings</h2>
-            
+          {/* General Settings - Site-wide */}
+          <div id="general" className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-bold text-gray-900">General Settings</h2>
+              <span className="px-2.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Site-wide</span>
+            </div>
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -56,10 +105,11 @@ export default function AdminSettingsPage() {
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Tech Hub & Life Skills Academy"
-                  defaultValue="Tech Hub & Life Skills Academy"
+                  value={(siteForm.siteTitle as string) || ''}
+                  onChange={e => setSiteField('siteTitle', e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   Site Description
@@ -68,10 +118,11 @@ export default function AdminSettingsPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="Your ultimate destination for expert tech reviews, hands‑on tutorials, and practical life‑skill training."
-                  defaultValue="Your ultimate destination for expert tech reviews, hands‑on tutorials, and practical life‑skill training."
+                  value={(siteForm.siteDescription as string) || ''}
+                  onChange={e => setSiteField('siteDescription', e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   Site URL
@@ -80,10 +131,11 @@ export default function AdminSettingsPage() {
                   type="url"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="https://yourdomain.com"
-                  defaultValue="http://localhost:3000"
+                  value={(siteForm.siteUrl as string) || ''}
+                  onChange={e => setSiteField('siteUrl', e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   Contact Email
@@ -92,10 +144,11 @@ export default function AdminSettingsPage() {
                   type="email"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="contact@example.com"
-                  defaultValue="admin@techhub.example.com"
+                  value={(siteForm.contactEmail as string) || ''}
+                  onChange={e => setSiteField('contactEmail', e.target.value)}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-medium text-gray-900">Maintenance Mode</h3>
@@ -104,139 +157,149 @@ export default function AdminSettingsPage() {
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" />
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={!!siteForm.maintenanceMode}
+                    onChange={e => setSiteField('maintenanceMode', e.target.checked)}
+                  />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
             </div>
-            
+
             <div className="mt-8 pt-6 border-t border-gray-200">
-              <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                Save Changes
+              <button
+                className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors ${savingSite ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleSaveSite}
+                disabled={savingSite}
+              >
+                {savingSite ? 'Saving...' : 'Save Site Settings'}
               </button>
             </div>
           </div>
-          
-          {/* Appearance Settings */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Appearance</h2>
-            
+
+          {/* Appearance Settings - Site-wide */}
+          <div id="appearance" className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Appearance</h2>
+              <span className="px-2.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Site-wide</span>
+            </div>
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   Primary Color
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-blue-600 border-2 border-gray-300"></div>
-                  <div className="w-12 h-12 rounded-lg bg-purple-600 border-2 border-gray-300"></div>
-                  <div className="w-12 h-12 rounded-lg bg-green-600 border-2 border-gray-300"></div>
-                  <div className="w-12 h-12 rounded-lg bg-red-600 border-2 border-gray-300"></div>
-                  <div className="w-12 h-12 rounded-lg bg-yellow-500 border-2 border-gray-300"></div>
+                  {['blue', 'purple', 'green', 'red', 'yellow'].map(color => (
+                    <button
+                      key={color}
+                      className={`w-12 h-12 rounded-lg border-2 transition-all ${
+                        siteForm.primaryColor === color ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900' : 'border-gray-300'
+                      }`}
+                      style={{ backgroundColor: { blue: '#2563eb', purple: '#9333ea', green: '#16a34a', red: '#dc2626', yellow: '#eab308' }[color] }}
+                      onClick={() => setSiteField('primaryColor', color)}
+                    />
+                  ))}
                 </div>
               </div>
-              
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <button
+                className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors ${savingSite ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleSaveSite}
+                disabled={savingSite}
+              >
+                {savingSite ? 'Saving...' : 'Save Site Settings'}
+              </button>
+            </div>
+          </div>
+
+          {/* Editor Preferences - Personal */}
+          <div id="editor" className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Editor Preferences</h2>
+              <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">Personal</span>
+            </div>
+
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Logo
+                  Font Family
                 </label>
-                <div className="flex items-center gap-6">
-                  <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <span className="text-3xl">🖼️</span>
-                  </div>
-                  <div>
-                    <button className="px-4 py-2 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-lg font-medium mb-2">
-                      Upload New Logo
-                    </button>
-                    <p className="text-sm text-gray-500">
-                      Recommended: 400x400px PNG or SVG
-                    </p>
-                  </div>
-                </div>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={(userForm.editorFontFamily as string) || 'Geist Mono'}
+                  onChange={e => setUserField('editorFontFamily', e.target.value)}
+                >
+                  {['Geist Mono', 'Consolas', 'Courier New', 'monospace'].map(f => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Favicon
+                  Font Size
                 </label>
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <span className="text-xl">✨</span>
-                  </div>
-                  <div>
-                    <button className="px-4 py-2 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-lg font-medium mb-2">
-                      Upload New Favicon
-                    </button>
-                    <p className="text-sm text-gray-500">
-                      Recommended: 64x64px ICO or PNG
-                    </p>
-                  </div>
-                </div>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={(userForm.editorFontSize as number) || 14}
+                  onChange={e => setUserField('editorFontSize', parseInt(e.target.value))}
+                >
+                  {[10, 12, 13, 14, 15, 16, 18, 20, 22, 24].map(s => (
+                    <option key={s} value={s}>{s}px</option>
+                  ))}
+                </select>
               </div>
-              
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">Show Table of Contents</h3>
+                  <p className="text-sm text-gray-500">
+                    Display the table of contents panel in the editor
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={userForm.editorShowToc !== false}
+                    onChange={e => setUserField('editorShowToc', e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-medium text-gray-900">Dark Mode</h3>
                   <p className="text-sm text-gray-500">
-                    Enable dark mode support
+                    Use dark theme in the editor
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={!!userForm.darkMode}
+                    onChange={e => setUserField('darkMode', e.target.checked)}
+                  />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
             </div>
-            
+
             <div className="mt-8 pt-6 border-t border-gray-200">
-              <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                Save Appearance
+              <button
+                className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors ${savingUser ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleSaveUser}
+                disabled={savingUser}
+              >
+                {savingUser ? 'Saving...' : 'Save Personal Preferences'}
               </button>
-            </div>
-          </div>
-          
-          {/* Danger Zone */}
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-            <h2 className="text-xl font-bold text-red-900 mb-4">Danger Zone</h2>
-            <p className="text-red-800 mb-6">
-              These actions are irreversible. Please proceed with caution.
-            </p>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
-                <div>
-                  <h3 className="font-medium text-gray-900">Clear Cache</h3>
-                  <p className="text-sm text-gray-500">
-                    Clear all cached data and rebuild
-                  </p>
-                </div>
-                <button className="px-4 py-2 bg-red-100 text-red-800 hover:bg-red-200 rounded-lg font-medium">
-                  Clear Cache
-                </button>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
-                <div>
-                  <h3 className="font-medium text-gray-900">Reset Site</h3>
-                  <p className="text-sm text-gray-500">
-                    Reset all content to factory defaults
-                  </p>
-                </div>
-                <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
-                  Reset Site
-                </button>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
-                <div>
-                  <h3 className="font-medium text-gray-900">Delete Site</h3>
-                  <p className="text-sm text-gray-500">
-                    Permanently delete all data and configurations
-                  </p>
-                </div>
-                <button className="px-4 py-2 bg-red-800 hover:bg-red-900 text-white rounded-lg font-medium">
-                  Delete Site
-                </button>
-              </div>
             </div>
           </div>
         </div>

@@ -115,6 +115,30 @@ export async function getUserById(id: string) {
   return fetchAPI<UserResponse>(`/api/users/${id}`);
 }
 
+// User Settings (personalized per user)
+export async function getUserSettings() {
+  return fetchAPI<{ settings: Record<string, unknown> }>('/api/user/settings');
+}
+
+export async function saveUserSettings(settings: Record<string, unknown>) {
+  return fetchAPI<{ success: boolean; settings: Record<string, unknown> }>('/api/user/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
+  });
+}
+
+// Site Settings (global, admin-only)
+export async function getSiteSettings() {
+  return fetchAPI<{ settings: Record<string, unknown> }>('/api/admin/site-settings');
+}
+
+export async function saveSiteSettings(settings: Record<string, unknown>) {
+  return fetchAPI<{ success: boolean; settings: Record<string, unknown> }>('/api/admin/site-settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
+  });
+}
+
 // Statistics (admin)
 export async function getAdminStats() {
   return fetchAPI<{

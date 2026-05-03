@@ -127,3 +127,11 @@
 .btnInactive:hover {
   background: #e5e7eb;
 }
+
+.autoSaveIndicator {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}

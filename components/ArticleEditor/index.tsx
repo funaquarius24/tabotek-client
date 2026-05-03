@@ -13,6 +13,8 @@ import type { ArticleAttributes } from '@/components/ArticleSettingDrawer';
 import type { TocItem } from '@/components/Editor/utils/markdown';
 import styles from './ArticleEditor.module.css';
 
+const AUTOSAVE_INTERVAL = 30000;
+
 interface ArticleEditorProps {
   canPublish?: boolean;
   userRole?: string;
@@ -163,7 +165,23 @@ export default function ArticleEditor({ canPublish = false, userRole }: ArticleE
     } finally {
       setSaving(false);
     }
-  }, [draft, saving, user, createArticle, updateArticle, addToast, router]);
+  }, [draft, saving, user, createArticle, updateArticle, addToast, router, canPublish]);
+
+  const saveOrPublishRef = useRef(saveOrPublish);
+  saveOrPublishRef.current = saveOrPublish;
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const hasUnsavedRef = useRef(hasUnsaved);
+  hasUnsavedRef.current = hasUnsaved;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (hasUnsavedRef.current && draftRef.current.title.trim() && draftRef.current.content.trim()) {
+        saveOrPublishRef.current('draft');
+      }
+    }, AUTOSAVE_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleDelete = useCallback(() => {
     const confirmed = window.confirm('Are you sure you want to delete this article? This action cannot be undone.');
@@ -271,6 +289,9 @@ export default function ArticleEditor({ canPublish = false, userRole }: ArticleE
               Delete
             </button>
           )}
+          <span className={styles.autoSaveIndicator}>
+            {saving ? 'Auto-saving...' : hasSaved ? 'Saved' : ''}
+          </span>
         </div>
       </div>
 
