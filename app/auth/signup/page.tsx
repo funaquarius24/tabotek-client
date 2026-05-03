@@ -19,6 +19,10 @@ function SignUpForm() {
     country: '',
     gender: '',
   });
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -37,6 +41,63 @@ function SignUpForm() {
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      addToast('Only JPEG, PNG, and WebP images are allowed', 'error');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      addToast('File must be under 2MB', 'error');
+      return;
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+
+    setAvatarUploading(true);
+    try {
+      const urlRes = await fetch('/api/auth/upload-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+
+      if (!urlRes.ok) {
+        const errData = await urlRes.json();
+        throw new Error(errData.error || 'Failed to get upload URL');
+      }
+
+      const { uploadUrl, publicUrl } = await urlRes.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+
+      setAvatarUrl(publicUrl);
+      addToast('Avatar uploaded successfully', 'success');
+    } catch (err: any) {
+      addToast(err.message || 'Avatar upload failed', 'error');
+      setAvatarPreview('');
+      setAvatarFile(null);
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,7 +224,7 @@ function SignUpForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, avatarUrl }),
       });
 
       if (!registerResponse.ok) {
@@ -300,6 +361,44 @@ function SignUpForm() {
               <p className="mt-1 text-xs text-gray-500">
                 3-20 characters, letters, numbers, and underscores only
               </p>
+            </div>
+
+            {/* Avatar */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Avatar <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="relative cursor-pointer group">
+                  <div className={`w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${
+                    avatarPreview ? 'border-blue-400' : 'border-gray-300 hover:border-gray-400'
+                  }`}>
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    )}
+                    {avatarUploading && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarSelect}
+                    disabled={avatarUploading}
+                  />
+                </label>
+                <div className="text-sm text-gray-500">
+                  <p>JPEG, PNG, or WebP</p>
+                  <p>Max 2MB</p>
+                </div>
+              </div>
             </div>
 
             <div>
