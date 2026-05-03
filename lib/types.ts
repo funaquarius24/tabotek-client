@@ -14,6 +14,8 @@ export interface Article {
   status: 'draft' | 'published' | 'archived';
   publishedAt: Date;
   views: number;
+  likes: number;
+  dislikes: number;
   seo: {
     title: string;
     description: string;
@@ -62,6 +64,8 @@ export interface ArticleResponse {
   status: 'draft' | 'published' | 'archived';
   publishedAt: string;
   views: number;
+  likes: number;
+  dislikes: number;
   seo: {
     title: string;
     description: string;
@@ -91,6 +95,8 @@ export interface UserResponse {
   role: 'superuser' | 'admin' | 'editor' | 'author' | 'user';
   avatar: string;
   bio: string;
+  totalLikes: number;
+  totalDislikes: number;
   createdAt: string;
   updatedAt: string;
 }

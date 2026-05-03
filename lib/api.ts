@@ -72,6 +72,13 @@ export async function deleteArticle(slug: string) {
   });
 }
 
+export async function voteArticle(slug: string, vote: 'like' | 'dislike' | null, previousVote: 'like' | 'dislike' | null) {
+  return fetchAPI<ArticleResponse>(`/api/articles/${slug}/vote`, {
+    method: 'POST',
+    body: JSON.stringify({ vote, previousVote }),
+  });
+}
+
 // Categories
 export async function getCategories(params?: { featured?: boolean; parent?: string }) {
   const searchParams = new URLSearchParams();
