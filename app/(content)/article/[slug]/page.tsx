@@ -14,6 +14,7 @@ export default function ArticlePage() {
   const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [showToc, setShowToc] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
@@ -103,9 +104,21 @@ export default function ArticlePage() {
 
   return (
     <ThreeColumnLayout
-      leftSidebar={<TableOfContentsClient items={tableOfContents} />}
+      leftSidebar={showToc ? <TableOfContentsClient items={tableOfContents} /> : undefined}
     >
       <article className="prose prose-lg max-w-none">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setShowToc((v) => !v)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <span className={`w-8 h-4 rounded-full transition-colors ${showToc ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-600'} relative`}>
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${showToc ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </span>
+            <span className="text-zinc-600 dark:text-zinc-400 text-xs font-medium">TOC</span>
+          </button>
+          <div />
+        </div>
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
           {article.title}
         </h1>

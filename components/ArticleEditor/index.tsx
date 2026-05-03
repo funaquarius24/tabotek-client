@@ -86,6 +86,7 @@ export default function ArticleEditor({ canPublish = false, userRole }: ArticleE
   const [hasSaved, setHasSaved] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showToc, setShowToc] = useState(true);
 
   const hasUnsaved = !hasSaved && (!!draft.title || !!draft.content);
   useWarningOnExit(hasUnsaved);
@@ -250,6 +251,13 @@ export default function ArticleEditor({ canPublish = false, userRole }: ArticleE
             </button>
           )}
           <button
+            className={`${styles.btn} ${showToc ? styles.btnActive : styles.btnInactive}`}
+            onClick={() => setShowToc((v) => !v)}
+            title="Toggle table of contents"
+          >
+            TOC {showToc ? 'ON' : 'OFF'}
+          </button>
+          <button
             className={`${styles.btn} ${styles.btnSettings}`}
             onClick={() => setSettingsOpen(true)}
           >
@@ -271,6 +279,7 @@ export default function ArticleEditor({ canPublish = false, userRole }: ArticleE
           key={editorKey}
           defaultValue={existingArticle?.content ?? ''}
           onChange={handleEditorChange}
+          showToc={showToc}
         />
       </div>
 

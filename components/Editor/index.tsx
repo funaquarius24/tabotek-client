@@ -20,6 +20,7 @@ interface EditorProps {
   defaultValue?: string;
   onChange?: (change: EditorChange) => void;
   onSave?: (value: string) => void;
+  showToc?: boolean;
 }
 
 const STORAGE_KEY = 'editor_cache';
@@ -27,7 +28,7 @@ const STORAGE_KEY = 'editor_cache';
 const FONT_FAMILIES = ['Geist Mono', 'Consolas', 'Courier New', 'monospace'];
 const FONT_SIZES = [10, 12, 13, 14, 15, 16, 18, 20, 22, 24];
 
-export default function Editor({ defaultValue: _defaultValue = '', onChange, onSave }: EditorProps) {
+export default function Editor({ defaultValue: _defaultValue = '', onChange, onSave, showToc = true }: EditorProps) {
   const [value, setValue] = useState(_defaultValue);
   const [html, setHtml] = useState('');
   const [toc, setToc] = useState<TocItem[]>([]);
@@ -535,26 +536,28 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
           onScroll={handlePreviewScroll}
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        <div className={styles.tocPanel}>
-          <div className={styles.tocTitle}>Table of Contents</div>
-          {toc.length === 0 ? (
-            <div className={styles.emptyState}>No headings yet</div>
-          ) : (
-            toc.map((item, i) => (
-              <button
-                key={i}
-                className={styles.tocItem}
-                data-level={item.level}
-                onClick={() => {
-                  const el = previewRef.current?.querySelector(`#${CSS.escape(item.id)}`);
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                {item.text}
-              </button>
-            ))
-          )}
-        </div>
+        {showToc && (
+          <div className={styles.tocPanel}>
+            <div className={styles.tocTitle}>Table of Contents</div>
+            {toc.length === 0 ? (
+              <div className={styles.emptyState}>No headings yet</div>
+            ) : (
+              toc.map((item, i) => (
+                <button
+                  key={i}
+                  className={styles.tocItem}
+                  data-level={item.level}
+                  onClick={() => {
+                    const el = previewRef.current?.querySelector(`#${CSS.escape(item.id)}`);
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  {item.text}
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -17,11 +17,11 @@ export default function ThreeColumnLayout({
   // Calculate grid columns dynamically based on which sidebars are present
   let gridCols = '';
   if (hasLeftSidebar && hasRightSidebar) {
-    gridCols = 'lg:grid-cols-[1.34fr_5.66fr_3fr]';
+    gridCols = 'lg:grid-cols-[1.51fr_5.99fr_2.5fr]';
   } else if (hasLeftSidebar && !hasRightSidebar) {
-    gridCols = 'lg:grid-cols-[1.34fr_10.66fr]';
+    gridCols = 'lg:grid-cols-[0.91fr_11.09fr]';
   } else if (!hasLeftSidebar && hasRightSidebar) {
-    gridCols = 'lg:grid-cols-[9fr_3fr]';
+    gridCols = 'lg:grid-cols-[9.5fr_2.5fr]';
   } else {
     gridCols = 'lg:grid-cols-[1fr]';
   }
