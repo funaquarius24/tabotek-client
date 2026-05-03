@@ -1,0 +1,136 @@
+.dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 32px;
+}
+
+.dropzone:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.dropzoneActive {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  border-style: solid;
+}
+
+.dropzoneDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #9ca3af;
+}
+
+.dropzone:hover .icon {
+  color: #3b82f6;
+}
+
+.text {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.browseBtn {
+  margin-top: 12px;
+  padding: 8px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.browseBtn:hover {
+  background: #2563eb;
+}
+
+.browseBtn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.fileInput {
+  display: none;
+}
+
+.preview {
+  margin-top: 16px;
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.fileInfo {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.progress {
+  margin-top: 12px;
+  width: 100%;
+  max-width: 300px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 3px;
+  transition: width 0.3s;
+  width: 0%;
+}
+
+.statusText {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.statusSuccess {
+  color: #16a34a;
+}
+
+.statusError {
+  color: #dc2626;
+}
+
+.statusUploading {
+  color: #3b82f6;
+}

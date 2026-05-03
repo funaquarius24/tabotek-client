@@ -1,0 +1,13 @@
+@layer components {
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50;
+  }
+
+  .modal-container {
+    @apply fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] sm:w-[90vw] md:w-[80vw] lg:w-[60vw] xl:w-[45vw] max-w-lg;
+  }
+
+  .modal-content {
+    @apply bg-background border rounded-lg shadow-lg p-4 sm:p-6;
+  }
+}
