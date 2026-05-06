@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface CategorySidebarProps {
   categorySlug?: string;
@@ -6,12 +9,16 @@ interface CategorySidebarProps {
 }
 
 const CategorySidebar = ({ categorySlug, activeTab }: CategorySidebarProps) => {
+  const { user } = useAuth();
+
   const navigationItems = [
     { label: 'Articles', icon: '📄', href: categorySlug ? `/category/${categorySlug}` : '/articles' },
     { label: 'Questions', icon: '❓', href: '#questions' },
     { label: 'Chat', icon: '💬', href: '#chat' },
     { label: 'Tags', icon: '🏷️', href: '#tags' },
   ];
+
+  const canAccessDashboard = user && (user.role === 'admin' || user.role === 'superuser');
 
   return (
     <nav className="sticky top-8">
@@ -31,6 +38,15 @@ const CategorySidebar = ({ categorySlug, activeTab }: CategorySidebarProps) => {
             <span>{item.label}</span>
           </Link>
         ))}
+        {canAccessDashboard && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <span>📊</span>
+            <span>Dashboard</span>
+          </Link>
+        )}
       </div>
       
       <div className="mt-8 pt-6 border-t border-gray-200">
