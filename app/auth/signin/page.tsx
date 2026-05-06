@@ -29,7 +29,7 @@ function SignInForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Invalid email or password');
+        setError(data.error || 'Invalid email/username or password');
       } else {
         const role = data.user?.role;
         const isStaff = role === 'admin' || role === 'editor' || role === 'superuser';
@@ -66,18 +66,18 @@ function SignInForm() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
-                Email address
+                Email or Username
               </label>
               <input
                 id="email"
                 name="email"
-                type="email"
-                autoComplete="email"
+                type="text"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 h-[48px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="admin@example.com"
+                placeholder="admin@example.com or Admin"
               />
             </div>
 
@@ -139,14 +139,19 @@ function SignInForm() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid grid-cols-3 gap-3">
               <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-500">Email</p>
+                <p className="text-xs text-gray-500">Email / Username</p>
                 <p className="text-sm font-medium text-gray-900">admin@techhub.example.com</p>
+                <p className="text-xs text-gray-400">or "Admin"</p>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-xs text-gray-500">Password</p>
                 <p className="text-sm font-medium text-gray-900">password123</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-500">Roles</p>
+                <p className="text-sm font-medium text-gray-900">superuser / admin / editor / author / user</p>
               </div>
             </div>
           </div>
