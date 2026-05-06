@@ -16,10 +16,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'signin' }: AuthModa
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const isSignUp = mode === 'signup';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,14 +25,17 @@ export default function AuthModal({ isOpen, onClose, mode = 'signin' }: AuthModa
     const newErrors: { email?: string; password?: string } = {};
     
     if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Email or username is required';
+    } else if (isSignUp) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        newErrors.email = 'Please enter a valid email address';
+      }
     }
     
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 8) {
+    } else if (isSignUp && password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
 
@@ -78,13 +78,13 @@ export default function AuthModal({ isOpen, onClose, mode = 'signin' }: AuthModa
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label>Email Address</label>
+            <label>{isSignUp ? 'Email Address' : 'Email or Username'}</label>
             <input
-              type="email"
+              type={isSignUp ? 'email' : 'text'}
               value={email}
               onChange={e => setEmail(e.target.value)}
               className={errors.email ? styles.errorInput : ''}
-              placeholder="you@example.com"
+              placeholder={isSignUp ? 'you@example.com' : 'you@example.com or username'}
             />
             {errors.email && <span className={styles.error}>{errors.email}</span>}
           </div>
