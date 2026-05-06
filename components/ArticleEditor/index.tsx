@@ -18,6 +18,7 @@ const AUTOSAVE_INTERVAL = 30000;
 interface ArticleEditorProps {
   canPublish?: boolean;
   userRole?: string;
+  articleId?: string;
 }
 
 interface ArticleDraft {
@@ -35,10 +36,10 @@ interface ArticleDraft {
   coverImage: string;
 }
 
-export default function ArticleEditor({ canPublish = false, userRole }: ArticleEditorProps) {
+export default function ArticleEditor({ canPublish = false, userRole, articleId }: ArticleEditorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get('id');
+  const editId = articleId || searchParams.get('id');
   const { user } = useAuth();
   const { addToast } = useToast();
 

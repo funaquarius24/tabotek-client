@@ -27,7 +27,7 @@ export default function AdminArticleEditPage() {
           <p className="text-gray-600 mt-2">Edit the content and settings of this article.</p>
         </div>
       </div>
-      <ArticleEditor canPublish={canPublish} userRole={user?.role} />
+      <ArticleEditor canPublish={canPublish} userRole={user?.role} articleId={articleId} />
     </div>
   );
 }
