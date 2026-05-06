@@ -107,6 +107,28 @@
   min-height: 0;
 }
 
+.excerptArea {
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  color: #374151;
+  transition: border-color 0.15s;
+}
+
+.excerptArea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.excerptArea::placeholder {
+  color: #9ca3af;
+}
+
 .btnDisabled {
   opacity: 0.5;
   cursor: not-allowed;

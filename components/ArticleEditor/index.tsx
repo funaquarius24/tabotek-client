@@ -296,6 +296,17 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
         </div>
       </div>
 
+      <textarea
+        className={styles.excerptArea}
+        value={draft.summary}
+        onChange={e => {
+          setDraft(prev => ({ ...prev, summary: e.target.value }));
+          setHasSaved(false);
+        }}
+        placeholder="Excerpt (optional) — a short summary of the article..."
+        rows={2}
+      />
+
       <div className={styles.editorWrapper}>
         <Editor
           key={editorKey}
