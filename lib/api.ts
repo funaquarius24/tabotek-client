@@ -4,19 +4,21 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  console.log(`[fetchAPI] ${options?.method || 'GET'} ${url}`);
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
+    credentials: 'include',
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    console.log(`[fetchAPI] ${response.status} ${url}:`, error);
     throw new Error(error.error || `HTTP ${response.status}`);
   }
-  console.log("fetchAPI Response: ", response);
 
   return response.json();
 }

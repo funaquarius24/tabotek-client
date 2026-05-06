@@ -2,17 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import * as api from '@/lib/api';
 
-export function useUsers(enabled?: boolean) {
+export function useUsers() {
   return useQuery({
     queryKey: queryKeys.users.list(),
-    queryFn: async () => {
-      try {
-        return await api.getUsers();
-      } catch {
-        return { users: [] };
-      }
-    },
-    enabled,
+    queryFn: api.getUsers,
     retry: false,
   });
 }
@@ -29,13 +22,7 @@ export function useUser(id: string) {
 export function useAdminStats() {
   return useQuery({
     queryKey: queryKeys.admin.stats,
-    queryFn: async () => {
-      try {
-        return await api.getAdminStats();
-      } catch {
-        return null;
-      }
-    },
+    queryFn: api.getAdminStats,
     retry: false,
   });
 }
