@@ -38,8 +38,12 @@ async function fetchTags() {
 
 export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }) {
   const { tag: slug } = await params;
-  const tag = await fetchTagBySlug(slug);
+  const [tag, { articles }] = await Promise.all([
+    fetchTagBySlug(slug),
+    fetchArticlesByTag(slug),
+  ]);
   const tagName = tag?.name || slug;
+  const articleCount = articles?.length || 0;
 
   return {
     title: `${tagName} Tutorials & Guides | Tech Hub`,
@@ -51,6 +55,8 @@ export async function generateMetadata({ params }: { params: Promise<{ tag: stri
     alternates: {
       canonical: `https://techteg.com/tags/${slug}`,
     },
+    // Noindex thin content tags with fewer than 3 articles
+    robots: articleCount < 3 ? { index: false, follow: true } : undefined,
   };
 }
 
@@ -116,6 +122,35 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
           <span className="mx-2">/</span>
           <span className="text-gray-900">{tagDisplayName}</span>
         </nav>
+
+        {/* Schema.org BreadcrumbList + CollectionPage structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'CollectionPage',
+              name: `${tagDisplayName} Tutorials & Guides`,
+              description: tag?.description || `Articles tagged with ${tagDisplayName}`,
+              breadcrumb: {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://techteg.com/' },
+                  { '@type': 'ListItem', position: 2, name: 'Articles', item: 'https://techteg.com/articles' },
+                  { '@type': 'ListItem', position: 3, name: tagDisplayName, item: `https://techteg.com/tags/${slug}` },
+                ],
+              },
+              mainEntity: {
+                '@type': 'ItemList',
+                itemListElement: articles.slice(0, 10).map((a: any, i: number) => ({
+                  '@type': 'ListItem',
+                  position: i + 1,
+                  url: `https://techteg.com/article/${a.slug}`,
+                })),
+              },
+            }),
+          }}
+        />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">

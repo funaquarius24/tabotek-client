@@ -64,6 +64,34 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <span className="text-gray-900">{category.name}</span>
       </nav>
 
+      {/* Schema.org BreadcrumbList + CollectionPage structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: `${category.name} Articles`,
+            description: category.description || `Articles in ${category.name}`,
+            breadcrumb: {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://techteg.com/' },
+                { '@type': 'ListItem', position: 2, name: category.name, item: `https://techteg.com/categories/${category.slug}` },
+              ],
+            },
+            mainEntity: {
+              '@type': 'ItemList',
+              itemListElement: articles.slice(0, 10).map((a: any, i: number) => ({
+                '@type': 'ListItem',
+                position: i + 1,
+                url: `https://techteg.com/article/${a.slug}`,
+              })),
+            },
+          }),
+        }}
+      />
+
       <div className="space-y-8">
         <div className="mb-12">
           <div className="flex items-center gap-4 mb-4">

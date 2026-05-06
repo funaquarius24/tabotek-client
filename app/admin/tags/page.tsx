@@ -2,21 +2,30 @@
 
 import React, { useState, useCallback } from 'react';
 import { TagResponse, CreateTagRequest } from '@/lib/types';
-import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '@/hooks/useTags';
+import { useTags, useCreateTag, useUpdateTag, useDeleteTag, useMergeTags, useCleanupUnusedTags, useTagSuggestions, useRecountTagCounts } from '@/hooks/useTags';
 
 export default function AdminTagsPage() {
   const { data, isLoading, error, refetch } = useTags();
   const createMutation = useCreateTag();
   const updateMutation = useUpdateTag();
   const deleteMutation = useDeleteTag();
+  const mergeMutation = useMergeTags();
+  const cleanupMutation = useCleanupUnusedTags();
+  const recountMutation = useRecountTagCounts();
+  const { data: suggestionsData, refetch: refetchSuggestions } = useTagSuggestions();
 
   const tags: TagResponse[] = data?.tags || [];
+  const suggestions = suggestionsData?.suggestions || [];
 
   const [showForm, setShowForm] = useState(false);
   const [editingTag, setEditingTag] = useState<TagResponse | null>(null);
   const [form, setForm] = useState<CreateTagRequest>({ name: '', slug: '', description: '', relatedTags: [] });
   const [relatedInput, setRelatedInput] = useState('');
   const [tagSearch, setTagSearch] = useState('');
+
+  // Merge dialog state
+  const [mergeSource, setMergeSource] = useState<TagResponse | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState('');
 
   const filteredTags = tagSearch
     ? tags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()) || t.slug.toLowerCase().includes(tagSearch.toLowerCase()))
@@ -85,37 +94,44 @@ export default function AdminTagsPage() {
     });
   }, [deleteMutation, refetch]);
 
-  const handleMerge = useCallback(async (sourceId: string, targetName: string) => {
-    const target = tags.find(t => t.name.toLowerCase() === targetName.toLowerCase());
-    if (!target) {
-      alert(`Tag "${targetName}" not found`);
-      return;
-    }
-    if (!confirm(`Merge all articles from "${tags.find(t => t._id === sourceId)?.name}" into "${target.name}"?`)) return;
-    try {
-      const res = await fetch(`/api/articles?limit=1000`);
-      const data = await res.json();
-      const sourceTagName = tags.find(t => t._id === sourceId)?.name;
-      const articlesToUpdate = (data.articles || []).filter((a: any) =>
-        a.tags?.some((t: string) => t.toLowerCase() === sourceTagName?.toLowerCase())
-      );
-      for (const article of articlesToUpdate) {
-        const newTags = article.tags.map((t: string) =>
-          t.toLowerCase() === sourceTagName?.toLowerCase() ? target.name : t
-        );
-        await fetch(`/api/articles/${article.slug}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tags: newTags }),
-        });
-      }
-      await deleteMutation.mutateAsync(sourceId);
-      refetch();
-      alert(`Merged "${sourceTagName}" into "${target.name}". Updated ${articlesToUpdate.length} articles.`);
-    } catch (err: any) {
-      alert(err.message || 'Failed to merge tags');
-    }
-  }, [tags, deleteMutation, refetch]);
+  const handleMerge = useCallback(async () => {
+    if (!mergeSource || !mergeTargetId) return;
+    const targetTag = tags.find(t => t._id === mergeTargetId);
+    if (!targetTag) return;
+
+    if (!confirm(`Merge "${mergeSource.name}" into "${targetTag.name}"? This will update all articles referencing "${mergeSource.name}" to "${targetTag.name}" and delete the source tag.`)) return;
+
+    mergeMutation.mutate({ sourceId: mergeSource._id, targetId: mergeTargetId }, {
+      onSuccess: (data) => {
+        refetch();
+        setMergeSource(null);
+        setMergeTargetId('');
+        alert(`Merged "${data.sourceTag}" into "${data.targetTag}". Updated ${data.articlesUpdated} articles.`);
+      },
+      onError: (err: any) => alert(err.message || 'Failed to merge tags'),
+    });
+  }, [mergeSource, mergeTargetId, tags, mergeMutation, refetch]);
+
+  const handleCleanup = useCallback(async () => {
+    if (!confirm('Delete all unused tags that are older than 30 days? This will also recalculate article counts for all tags.')) return;
+    cleanupMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        refetch();
+        alert(`Cleaned up ${data.deletedCount} unused tags: ${data.deletedTags.join(', ') || 'none'}`);
+      },
+      onError: (err: any) => alert(err.message || 'Failed to clean up tags'),
+    });
+  }, [cleanupMutation, refetch]);
+
+  const handleRecount = useCallback(async () => {
+    recountMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        refetch();
+        alert(`Recounted ${data.tagsUpdated} tags.`);
+      },
+      onError: (err: any) => alert(err.message || 'Failed to recount'),
+    });
+  }, [recountMutation, refetch]);
 
   if (isLoading) {
     return (
@@ -160,16 +176,32 @@ export default function AdminTagsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Tags</h1>
           <p className="text-gray-600 mt-2">Manage your content tags and keywords.</p>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowForm(true); }}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-        >
-          + New Tag
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRecount}
+            disabled={recountMutation.isPending}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors text-sm disabled:opacity-50"
+          >
+            {recountMutation.isPending ? 'Recounting...' : 'Recount'}
+          </button>
+          <button
+            onClick={handleCleanup}
+            disabled={cleanupMutation.isPending}
+            className="px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium rounded-lg transition-colors text-sm disabled:opacity-50"
+          >
+            {cleanupMutation.isPending ? 'Cleaning...' : 'Cleanup Unused'}
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowForm(true); }}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            + New Tag
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -197,13 +229,24 @@ export default function AdminTagsPage() {
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Unused</p>
+              <p className="text-sm text-gray-500">Unused (&gt;30d)</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
                 {tags.filter(t => (t.articleCount || 0) === 0).length}
               </p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
               <span className="text-2xl">📋</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Suggestions</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{suggestions.length}</p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <span className="text-2xl">💡</span>
             </div>
           </div>
         </div>
@@ -287,16 +330,54 @@ export default function AdminTagsPage() {
         </div>
       )}
 
-      {/* Search & Filter */}
+      {/* Merge Dialog */}
+      {mergeSource && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" onClick={() => { setMergeSource(null); setMergeTargetId(''); }}>
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Merge Tag</h2>
+            <p className="text-gray-600 mb-6">
+              Merge <strong>{mergeSource.name}</strong> into another tag. Articles using this tag will be updated.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Target Tag</label>
+                <select
+                  value={mergeTargetId}
+                  onChange={e => setMergeTargetId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select target tag...</option>
+                  {tags.filter(t => t._id !== mergeSource._id).map(t => (
+                    <option key={t._id} value={t._id}>{t.name} ({t.articleCount || 0} articles)</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleMerge}
+                  disabled={!mergeTargetId || mergeMutation.isPending}
+                  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {mergeMutation.isPending ? 'Merging...' : 'Merge Tags'}
+                </button>
+                <button onClick={() => { setMergeSource(null); setMergeTargetId(''); }} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex items-center gap-4">
           <input
             type="text"
             value={tagSearch}
             onChange={e => setTagSearch(e.target.value)}
             placeholder="Search tags by name or slug..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+          <span className="text-sm text-gray-500">{filteredTags.length} of {tags.length}</span>
         </div>
 
         {filteredTags.length === 0 ? (
@@ -339,7 +420,7 @@ export default function AdminTagsPage() {
                       <code className="text-sm text-gray-500">{tag.slug}</code>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(tag.articleCount || 0) >= 3 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                         {tag.articleCount || 0}
                       </span>
                     </td>
@@ -358,10 +439,7 @@ export default function AdminTagsPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => {
-                            const targetName = prompt(`Merge "${tag.name}" into which tag? (Enter tag name)`);
-                            if (targetName) handleMerge(tag._id, targetName.trim());
-                          }}
+                          onClick={() => { setMergeSource(tag); setMergeTargetId(''); }}
                           className="px-3 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded text-sm font-medium"
                         >
                           Merge
@@ -389,14 +467,52 @@ export default function AdminTagsPage() {
         )}
       </div>
 
+      {/* Tag Suggestions */}
+      {suggestions.length > 0 && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900">💡 Tag Suggestions</h3>
+              <p className="text-sm text-purple-700 mt-1">Based on article content analysis. Click to create a new tag.</p>
+            </div>
+            <button onClick={() => refetchSuggestions()} className="text-sm text-purple-600 hover:text-purple-800 font-medium">Refresh</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map(s => (
+              <button
+                key={s.slug}
+                onClick={async () => {
+                  try {
+                    await createMutation.mutateAsync({
+                      name: s.name,
+                      slug: s.slug,
+                      description: `Articles and tutorials about ${s.name}`,
+                    });
+                    refetch();
+                    refetchSuggestions();
+                  } catch { /* tag may already exist */ }
+                }}
+                disabled={createMutation.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-purple-200 hover:border-purple-400 rounded-full text-sm text-purple-800 hover:bg-purple-50 transition-colors disabled:opacity-50"
+              >
+                <span>{s.name}</span>
+                <span className="text-xs text-purple-400">({s.articleCount} articles)</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-blue-900 mb-2">💡 Tag Management Tips</h3>
         <ul className="text-blue-800 space-y-2">
           <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Use specific, descriptive tags that help readers find content</span></li>
           <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Limit to 5-10 tags per article for best SEO results</span></li>
-          <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Use the "Merge" feature to consolidate duplicate tags</span></li>
-          <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Tags are automatically suggested based on article content analysis</span></li>
+          <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Use the "Merge" feature to consolidate duplicate tags (e.g. "reactjs" → "react")</span></li>
+          <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Tags with fewer than 3 articles get a yellow badge — consider merging or removing them</span></li>
+          <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Use "Cleanup Unused" to automatically remove unused tags older than 30 days</span></li>
+          <li className="flex items-start gap-2"><span className="mt-1">•</span><span>Tag suggestions are generated by analyzing article titles for common keywords</span></li>
         </ul>
       </div>
     </div>

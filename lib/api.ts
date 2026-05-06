@@ -130,6 +130,29 @@ export async function updateTag(id: string, data: UpdateTagRequest) {
   });
 }
 
+export async function mergeTags(sourceId: string, targetId: string) {
+  return fetchAPI<{ success: boolean; sourceTag: string; targetTag: string; articlesUpdated: number }>('/api/tags/merge', {
+    method: 'POST',
+    body: JSON.stringify({ sourceId, targetId }),
+  });
+}
+
+export async function cleanupUnusedTags() {
+  return fetchAPI<{ success: boolean; deletedCount: number; deletedTags: string[] }>('/api/tags/cleanup', {
+    method: 'POST',
+  });
+}
+
+export async function getTagSuggestions() {
+  return fetchAPI<{ suggestions: Array<{ name: string; slug: string; articleCount: number }> }>('/api/tags/suggestions');
+}
+
+export async function recountTagCounts() {
+  return fetchAPI<{ success: boolean; tagsUpdated: number }>('/api/tags/recount', {
+    method: 'POST',
+  });
+}
+
 export async function deleteTag(id: string) {
   return fetchAPI<{ success: boolean }>(`/api/tags/${id}`, {
     method: 'DELETE',
