@@ -54,8 +54,15 @@ export default function AuthModal({ isOpen, onClose, mode = 'signin' }: AuthModa
       });
       
       if (res.ok) {
+        const data = await res.json();
+        const role = data.user?.role;
+        const isStaff = role === 'admin' || role === 'editor' || role === 'superuser';
         onClose();
-        window.location.reload();
+        if (isStaff) {
+          window.location.href = '/admin';
+        } else {
+          window.location.reload();
+        }
       } else {
         const data = await res.json();
         setErrors({ email: data.error || 'Authentication failed' });
