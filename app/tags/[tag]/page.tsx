@@ -1,12 +1,60 @@
-'use client';
-
-import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useArticles } from '@/lib/hooks/useArticles';
-import { ArticleResponse } from '@/lib/types';
+import { notFound } from 'next/navigation';
 
-function ArticleCard({ article }: { article: ArticleResponse }) {
+const API = process.env.NEXT_PUBLIC_API_URL || '';
+
+async function fetchArticlesByTag(tag: string) {
+  const res = await fetch(`${API}/api/articles?limit=50`, { cache: 'no-store' });
+  if (!res.ok) return { articles: [] };
+  const data = await res.json();
+  return {
+    articles: (data.articles || []).filter((a: any) =>
+      a.tags?.some((t: string) => t.toLowerCase() === tag.toLowerCase())
+    )
+  };
+}
+
+async function fetchTagBySlug(slug: string) {
+  try {
+    const res = await fetch(`${API}/api/tags/${slug}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTags() {
+  try {
+    const res = await fetch(`${API}/api/tags`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.tags || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }) {
+  const { tag: slug } = await params;
+  const tag = await fetchTagBySlug(slug);
+  const tagName = tag?.name || slug;
+
+  return {
+    title: `${tagName} Tutorials & Guides | Tech Hub`,
+    description: tag?.description || `Learn about ${tagName} with practical examples and best practices`,
+    openGraph: tag ? {
+      title: `Master ${tagName} | Tech Hub`,
+      description: `Step-by-step guides, code examples, and expert tips for ${tagName}`,
+    } : undefined,
+    alternates: {
+      canonical: `https://techteg.com/tags/${slug}`,
+    },
+  };
+}
+
+function ArticleCard({ article }: { article: any }) {
   return (
     <article className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       {article.featuredImage && (
@@ -26,13 +74,13 @@ function ArticleCard({ article }: { article: ArticleResponse }) {
           <span className="text-sm text-gray-500">{article.readTime} min read</span>
         </div>
         <h2 className="text-xl font-semibold mb-2 hover:text-blue-600 transition-colors">
-          <Link href={`/articles/${article.slug}`}>
+          <Link href={`/article/${article.slug}`}>
             {article.title}
           </Link>
         </h2>
         <p className="text-gray-600 mb-4 line-clamp-3">{article.excerpt}</p>
         <div className="flex flex-wrap gap-2">
-          {article.tags.slice(0, 3).map((tag) => (
+          {article.tags?.slice(0, 3).map((tag: string) => (
             <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
               {tag}
             </span>
@@ -43,52 +91,77 @@ function ArticleCard({ article }: { article: ArticleResponse }) {
   );
 }
 
-export default function TagPage() {
-  const params = useParams();
-  const tag = params.tag as string;
+export default async function TagPage({ params }: { params: Promise<{ tag: string }> }) {
+  const { tag: slug } = await params;
+  const [tag, tags, { articles }] = await Promise.all([
+    fetchTagBySlug(slug),
+    fetchTags(),
+    fetchArticlesByTag(slug),
+  ]);
 
-  const { data, isLoading } = useArticles({ search: tag, limit: 50 });
-  const articles = data?.articles?.filter(a => a.tags?.some(t => t.toLowerCase() === tag.toLowerCase())) ?? [];
+  if (!articles) notFound();
+
+  const tagDisplayName = tag?.name || slug;
+  const relatedTags = tag?.relatedTags || [];
+  const allTagNames = tags.map((t: any) => t.name);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="mb-6 text-sm text-gray-500">
+          <Link href="/" className="hover:text-blue-600">Home</Link>
+          <span className="mx-2">/</span>
+          <Link href="/articles" className="hover:text-blue-600">Articles</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900">{tagDisplayName}</span>
+        </nav>
+
         <div className="mb-8">
-          <Link href="/articles" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            &larr; Back to articles
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-2xl">#{tag}</span>
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-2xl">#{tagDisplayName}</span>
             <span className="text-gray-500 text-xl font-normal">Articles</span>
           </h1>
+          {tag?.description && (
+            <p className="text-gray-600 mt-3 max-w-2xl">{tag.description}</p>
+          )}
         </div>
 
-        {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
-                <div className="aspect-video bg-gray-200 rounded mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            ))}
+        {/* Related tags for discovery */}
+        {relatedTags.length > 0 && (
+          <div className="mb-6">
+            <span className="text-sm text-gray-500">Related: </span>
+            {relatedTags.map((related: string) => {
+              const relatedSlug = allTagNames.includes(related)
+                ? tags.find((t: any) => t.name === related)?.slug || related.toLowerCase().replace(/\s+/g, '-')
+                : related.toLowerCase().replace(/\s+/g, '-');
+              return (
+                <Link
+                  key={related}
+                  href={`/tags/${relatedSlug}`}
+                  className="inline-block px-3 py-1 mr-2 mb-1 bg-gray-100 hover:bg-blue-100 text-gray-700 hover:text-blue-700 rounded-full text-sm transition-colors"
+                >
+                  #{related}
+                </Link>
+              );
+            })}
           </div>
-        ) : articles.length === 0 ? (
+        )}
+
+        <p className="text-gray-500 mb-6">{articles.length} article{articles.length !== 1 ? 's' : ''} tagged with &ldquo;{tagDisplayName}&rdquo;</p>
+
+        {articles.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">🏷️</div>
             <h2 className="text-xl font-semibold text-gray-700 mb-2">No articles found</h2>
-            <p className="text-gray-500">No articles tagged with &ldquo;{tag}&rdquo;</p>
+            <p className="text-gray-500">No articles tagged with &ldquo;{tagDisplayName}&rdquo;</p>
           </div>
         ) : (
-          <>
-            <p className="text-gray-500 mb-6">{articles.length} article{articles.length !== 1 ? 's' : ''} tagged with &ldquo;{tag}&rdquo;</p>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {articles.map((article) => (
-                <ArticleCard key={article._id} article={article} />
-              ))}
-            </div>
-          </>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article: any) => (
+              <ArticleCard key={article._id} article={article} />
+            ))}
+          </div>
         )}
       </div>
     </div>

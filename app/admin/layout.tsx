@@ -83,6 +83,14 @@ export default function AdminLayout({
             </Link>
 
             <Link
+              href="/admin/tags"
+              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
+            >
+              <span className="text-lg">🏷️</span>
+              <span className="font-medium">Tags</span>
+            </Link>
+
+            <Link
               href="/admin/media"
               className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
             >

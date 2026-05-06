@@ -1,0 +1,57 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTags, getTagBySlug, createTag, updateTag, deleteTag } from '@/lib/api';
+import { CreateTagRequest, UpdateTagRequest } from '@/lib/types';
+
+export const tagKeys = {
+  all: ['tags'] as const,
+  lists: () => [...tagKeys.all, 'list'] as const,
+  list: (params?: any) => [...tagKeys.lists(), params] as const,
+  details: () => [...tagKeys.all, 'detail'] as const,
+  detail: (slugOrId: string) => [...tagKeys.details(), slugOrId] as const,
+};
+
+export function useTags(params?: any) {
+  return useQuery({
+    queryKey: tagKeys.list(params),
+    queryFn: () => getTags(),
+  });
+}
+
+export function useTag(slugOrId: string) {
+  return useQuery({
+    queryKey: tagKeys.detail(slugOrId),
+    queryFn: () => getTagBySlug(slugOrId),
+    enabled: !!slugOrId,
+  });
+}
+
+export function useCreateTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createTag,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.lists() });
+    },
+  });
+}
+
+export function useUpdateTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTagRequest }) => updateTag(id, data),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: tagKeys.detail(variables.id) });
+    },
+  });
+}
+
+export function useDeleteTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteTag,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.lists() });
+    },
+  });
+}

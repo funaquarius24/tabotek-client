@@ -1,4 +1,4 @@
-import { ArticleResponse, CategoryResponse, UserResponse, CreateArticleRequest, UpdateArticleRequest, CreateCategoryRequest, UpdateCategoryRequest } from './types';
+import { ArticleResponse, CategoryResponse, UserResponse, CreateArticleRequest, UpdateArticleRequest, CreateCategoryRequest, UpdateCategoryRequest, CreateTagRequest, UpdateTagRequest, TagResponse } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -104,6 +104,35 @@ export async function updateCategory(id: string, data: UpdateCategoryRequest) {
   return fetchAPI<CategoryResponse>(`/api/categories/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  });
+}
+
+// Tags
+export async function getTags() {
+  return fetchAPI<{ tags: TagResponse[] }>('/api/tags');
+}
+
+export async function getTagBySlug(slug: string) {
+  return fetchAPI<TagResponse>(`/api/tags/${slug}`);
+}
+
+export async function createTag(data: CreateTagRequest) {
+  return fetchAPI<TagResponse>('/api/tags', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateTag(id: string, data: UpdateTagRequest) {
+  return fetchAPI<TagResponse>(`/api/tags/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteTag(id: string) {
+  return fetchAPI<{ success: boolean }>(`/api/tags/${id}`, {
+    method: 'DELETE',
   });
 }
 

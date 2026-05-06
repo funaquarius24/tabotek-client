@@ -20,6 +20,13 @@ export const queryKeys = {
     details: () => [...queryKeys.users.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.users.details(), id] as const,
   },
+  tags: {
+    all: ['tags'] as const,
+    lists: () => [...queryKeys.tags.all, 'list'] as const,
+    list: (params?: any) => [...queryKeys.tags.lists(), params] as const,
+    details: () => [...queryKeys.tags.all, 'detail'] as const,
+    detail: (slug: string) => [...queryKeys.tags.details(), slug] as const,
+  },
   files: {
     all: ['files'] as const,
     lists: () => [...queryKeys.files.all, 'list'] as const,
