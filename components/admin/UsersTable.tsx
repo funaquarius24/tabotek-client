@@ -12,20 +12,29 @@ import {
 } from '@tanstack/react-table';
 import Link from 'next/link';
 import { UserResponse } from '@/lib/types';
-import { getRoleDisplayName, getRoleColorClass } from '@/lib/roles';
+import { getRoleDisplayName, getRoleColorClass, ROLE_LEVELS } from '@/lib/roles';
+import { UserRole } from '@/lib/roles';
 import { useUpdateUser, useDeleteUser } from '@/lib/hooks/useUsers';
 
 interface AdminUsersTableProps {
   users: UserResponse[];
+  currentUserId?: string;
+  currentUserRole?: UserRole;
 }
 
-export default function AdminUsersTable({ users }: AdminUsersTableProps) {
+export default function AdminUsersTable({ users, currentUserId, currentUserRole }: AdminUsersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', role: '', bio: '' });
   const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
+
+  const canModify = useCallback((targetUser: UserResponse) => {
+    if (!currentUserId || !currentUserRole) return false;
+    if (targetUser._id === currentUserId) return true;
+    return ROLE_LEVELS[currentUserRole] > ROLE_LEVELS[targetUser.role as UserRole];
+  }, [currentUserId, currentUserRole]);
 
   const columns = useMemo<ColumnDef<UserResponse>[]>(() => [
     {
@@ -85,31 +94,41 @@ export default function AdminUsersTable({ users }: AdminUsersTableProps) {
       id: 'actions',
       header: 'Actions',
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => openEdit(row.original)}
-            className="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded text-sm font-medium"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => handleResetPassword(row.original)}
-            className="px-3 py-1 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded text-sm font-medium"
-          >
-            Reset Password
-          </button>
-          {row.original.role !== 'superuser' && (
-            <button
-              onClick={() => handleDelete(row.original)}
-              disabled={deleteMutation.isPending}
-              className="px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded text-sm font-medium disabled:opacity-50"
-            >
-              {deleteMutation.isPending ? '...' : 'Delete'}
-            </button>
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const target = row.original;
+        const editable = canModify(target);
+        return (
+          <div className="flex items-center gap-2">
+            {editable ? (
+              <button
+                onClick={() => openEdit(target)}
+                className="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded text-sm font-medium"
+              >
+                Edit
+              </button>
+            ) : (
+              <span className="px-3 py-1 text-sm text-gray-400 italic">Protected</span>
+            )}
+            {editable && (
+              <button
+                onClick={() => handleResetPassword(target)}
+                className="px-3 py-1 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded text-sm font-medium"
+              >
+                Reset Password
+              </button>
+            )}
+            {editable && target._id !== currentUserId && (
+              <button
+                onClick={() => handleDelete(target)}
+                disabled={deleteMutation.isPending}
+                className="px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded text-sm font-medium disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? '...' : 'Delete'}
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ], [deleteMutation.isPending]);
 

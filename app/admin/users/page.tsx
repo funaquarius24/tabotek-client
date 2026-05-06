@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { getRoleDisplayName, getRoleColorClass, ROLES } from '@/lib/roles';
+import { getRoleDisplayName, getRoleColorClass, ROLES, ROLE_LEVELS } from '@/lib/roles';
 import { UserResponse } from '@/lib/types';
 import { useUsers } from '@/lib/hooks/useUsers';
+import { useAuth } from '@/components/providers/AuthProvider';
 import AdminUsersTable from '@/components/admin/UsersTable';
 
 export default function AdminUsersPage() {
+  const { user: authUser } = useAuth();
   const { data, isLoading, error } = useUsers();
 
   const users: UserResponse[] = data?.users || [];
@@ -85,7 +87,7 @@ export default function AdminUsersPage() {
             <p className="text-gray-500 mb-6">Please try again later</p>
           </div>
         ) : (
-          <AdminUsersTable users={users} />
+          <AdminUsersTable users={users} currentUserId={authUser?._id} currentUserRole={authUser?.role as any} />
         )}
       </div>
       
