@@ -176,6 +176,19 @@ export async function getUserById(id: string) {
   return fetchAPI<UserResponse>(`/api/users/${id}`);
 }
 
+export async function updateUser(id: string, data: Record<string, unknown>) {
+  return fetchAPI<UserResponse>(`/api/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteUser(id: string) {
+  return fetchAPI<{ success: boolean }>(`/api/users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // User Settings (personalized per user)
 export async function getUserSettings() {
   return fetchAPI<{ settings: Record<string, unknown> }>('/api/user/settings');

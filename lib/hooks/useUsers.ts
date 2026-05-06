@@ -19,10 +19,22 @@ export function useUser(id: string) {
   });
 }
 
-export function useAdminStats() {
-  return useQuery({
-    queryKey: queryKeys.admin.stats,
-    queryFn: api.getAdminStats,
-    retry: false,
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => api.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.lists() });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.lists() });
+    },
   });
 }
