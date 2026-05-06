@@ -26,7 +26,7 @@ function ArticleCard({ article }: { article: ArticleResponse }) {
           <span className="text-sm text-gray-500">{article.readTime} min read</span>
         </div>
         <h2 className="text-xl font-semibold mb-2 hover:text-blue-600 transition-colors">
-          <Link href={`/articles/${article.slug}`}>
+          <Link href={`/article/${article.slug}`}>
             {article.title}
           </Link>
         </h2>
