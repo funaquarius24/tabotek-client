@@ -33,12 +33,13 @@ function ArticleCard({ article }: { article: ArticleResponse }) {
         <p className="text-gray-600 mb-4 line-clamp-3">{article.excerpt}</p>
         <div className="flex flex-wrap gap-2">
           {article.tags.slice(0, 3).map((tag) => (
-            <span
+            <Link
               key={tag}
-              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+              href={`/tags/${tag.toLowerCase()}`}
+              className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 text-xs rounded-full transition-colors no-underline"
             >
               {tag}
-            </span>
+            </Link>
           ))}
         </div>
       </div>

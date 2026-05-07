@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import TableOfContentsClient from '@/components/TableOfContentsClient';
 import MoreStories from '@/components/MoreStories';
@@ -239,12 +240,13 @@ export default function ArticlePage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
             <div className="flex flex-wrap gap-2">
               {article.tags.map((tag: string) => (
-                <span
+                <Link
                   key={tag}
-                  className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  href={`/tags/${tag.toLowerCase()}`}
+                  className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 hover:text-blue-900 rounded-full text-sm transition-colors no-underline"
                 >
                   {tag}
-                </span>
+                </Link>
               ))}
             </div>
           </div>
