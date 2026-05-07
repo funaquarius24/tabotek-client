@@ -32,7 +32,7 @@ function ArticleCard({ article }: { article: ArticleResponse }) {
         </h2>
         <p className="text-gray-600 mb-4 line-clamp-3">{article.excerpt}</p>
         <div className="flex flex-wrap gap-2">
-          {article.tags.slice(0, 3).map((tag) => (
+          {(article.tags ?? []).slice(0, 3).map((tag) => (
             <Link
               key={tag}
               href={`/tags/${tag.toLowerCase()}`}

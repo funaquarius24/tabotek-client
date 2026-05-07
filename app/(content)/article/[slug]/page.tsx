@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import TableOfContentsClient from '@/components/TableOfContentsClient';
 import MoreStories from '@/components/MoreStories';
+import Comments from '@/components/Comments';
 
 function getStoredVote(slug: string): 'like' | 'dislike' | null {
   if (typeof window === 'undefined') return null;
@@ -250,6 +251,10 @@ export default function ArticlePage() {
               ))}
             </div>
           </div>
+        )}
+
+        {article.allowComments !== false && (
+          <Comments articleSlug={slug} />
         )}
       </article>
     </ThreeColumnLayout>
