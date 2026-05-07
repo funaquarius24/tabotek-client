@@ -166,13 +166,12 @@ function CommentThread({
 }
 
 export default function Comments({ articleSlug }: CommentsProps) {
-  const { user } = useAuth();
+  const { user, isLoggedIn, isLoading } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [pagination, setPagination] = useState<PageInfo>({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [sort, setSort] = useState<'oldest' | 'newest'>('oldest');
-  const [authorName, setAuthorName] = useState('');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -200,12 +199,12 @@ export default function Comments({ articleSlug }: CommentsProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authorName.trim() || !content.trim()) return;
+    if (!content.trim()) return;
     setSubmitting(true); setError('');
     try {
       const res = await fetch(`/api/articles/${articleSlug}/comments`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: { name: authorName.trim() }, content: content.trim() }),
+        body: JSON.stringify({ content: content.trim() }),
       });
       if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to post comment'); return; }
       setContent('');
@@ -232,7 +231,7 @@ export default function Comments({ articleSlug }: CommentsProps) {
   const handleReply = async (parentId: string, replyContent: string) => {
     const res = await fetch(`/api/articles/${articleSlug}/comments`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author: { name: authorName.trim() }, content: replyContent, parentId }),
+      body: JSON.stringify({ content: replyContent, parentId }),
     });
     if (res.ok) await fetchComments(1);
   };
@@ -288,15 +287,27 @@ export default function Comments({ articleSlug }: CommentsProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="mb-8 space-y-3">
-        <input type="text" value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="Your name"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-        <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Write a comment..." rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" required />
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button type="submit" disabled={submitting || !authorName.trim() || !content.trim()}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium transition-colors">
-          {submitting ? 'Posting...' : 'Post Comment'}
-        </button>
+        {isLoading ? null : !isLoggedIn ? (
+          <div className="p-4 bg-gray-50 rounded-lg text-center text-sm text-gray-600">
+            <a href="/auth/signin" className="text-blue-600 hover:underline font-medium">Sign in</a> to leave a comment.
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-xs">
+                {user?.name?.charAt(0).toUpperCase()}
+              </div>
+              Commenting as <span className="font-medium text-gray-900">{user?.name}</span>
+            </div>
+            <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Write a comment..." rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y" required />
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            <button type="submit" disabled={submitting || !content.trim()}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium transition-colors">
+              {submitting ? 'Posting...' : 'Post Comment'}
+            </button>
+          </>
+        )}
       </form>
 
       {loading ? (
