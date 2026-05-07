@@ -9,6 +9,8 @@ export interface ArticleAttributes {
   summary: string;
   password: string;
   allowComments: boolean;
+  allowCommenterEdit: boolean;
+  allowCommenterDelete: boolean;
   isRecommended: boolean;
   categoryId: string;
   tags: string[];
@@ -29,6 +31,8 @@ export default function ArticleSettingDrawer({ open, onClose, initialValues, onC
   const [summary, setSummary] = useState(initialValues?.summary ?? '');
   const [password, setPassword] = useState(initialValues?.password ?? '');
   const [allowComments, setAllowComments] = useState(initialValues?.allowComments ?? true);
+  const [allowCommenterEdit, setAllowCommenterEdit] = useState(initialValues?.allowCommenterEdit ?? true);
+  const [allowCommenterDelete, setAllowCommenterDelete] = useState(initialValues?.allowCommenterDelete ?? true);
   const [isRecommended, setIsRecommended] = useState(initialValues?.isRecommended ?? false);
   const [categoryId, setCategoryId] = useState(initialValues?.categoryId ?? '');
   const [tags, setTags] = useState<string[]>(initialValues?.tags ?? []);
@@ -42,6 +46,8 @@ export default function ArticleSettingDrawer({ open, onClose, initialValues, onC
       if (initialValues.summary !== undefined) setSummary(initialValues.summary);
       if (initialValues.password !== undefined) setPassword(initialValues.password);
       if (initialValues.allowComments !== undefined) setAllowComments(initialValues.allowComments);
+      if (initialValues.allowCommenterEdit !== undefined) setAllowCommenterEdit(initialValues.allowCommenterEdit);
+      if (initialValues.allowCommenterDelete !== undefined) setAllowCommenterDelete(initialValues.allowCommenterDelete);
       if (initialValues.isRecommended !== undefined) setIsRecommended(initialValues.isRecommended);
       if (initialValues.categoryId !== undefined) setCategoryId(initialValues.categoryId);
       if (initialValues.tags !== undefined) setTags(initialValues.tags);
@@ -61,13 +67,15 @@ export default function ArticleSettingDrawer({ open, onClose, initialValues, onC
       summary,
       password,
       allowComments,
+      allowCommenterEdit,
+      allowCommenterDelete,
       isRecommended,
       categoryId,
       tags,
       coverImage,
     });
     onClose();
-  }, [summary, password, allowComments, isRecommended, categoryId, tags, coverImage, onChange, onClose]);
+  }, [summary, password, allowComments, allowCommenterEdit, allowCommenterDelete, isRecommended, categoryId, tags, coverImage, onChange, onClose]);
 
   const handleAddTag = useCallback((value: string) => {
     const trimmed = value.trim();
@@ -123,6 +131,26 @@ export default function ArticleSettingDrawer({ open, onClose, initialValues, onC
             <button
               className={`${styles.toggle} ${allowComments ? styles.toggleActive : ''}`}
               onClick={() => setAllowComments(!allowComments)}
+            >
+              <span className={styles.toggleKnob} />
+            </button>
+          </div>
+
+          <div className={styles.toggleGroup}>
+            <span className={styles.toggleGroupLabel}>Commenters can edit own</span>
+            <button
+              className={`${styles.toggle} ${allowCommenterEdit ? styles.toggleActive : ''}`}
+              onClick={() => setAllowCommenterEdit(!allowCommenterEdit)}
+            >
+              <span className={styles.toggleKnob} />
+            </button>
+          </div>
+
+          <div className={styles.toggleGroup}>
+            <span className={styles.toggleGroupLabel}>Commenters can delete own</span>
+            <button
+              className={`${styles.toggle} ${allowCommenterDelete ? styles.toggleActive : ''}`}
+              onClick={() => setAllowCommenterDelete(!allowCommenterDelete)}
             >
               <span className={styles.toggleKnob} />
             </button>

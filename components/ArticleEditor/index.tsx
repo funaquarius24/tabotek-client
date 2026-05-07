@@ -30,6 +30,8 @@ interface ArticleDraft {
   summary: string;
   password: string;
   allowComments: boolean;
+  allowCommenterEdit: boolean;
+  allowCommenterDelete: boolean;
   isRecommended: boolean;
   categoryId: string;
   tags: string[];
@@ -58,6 +60,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     summary: '',
     password: '',
     allowComments: true,
+    allowCommenterEdit: true,
+    allowCommenterDelete: true,
     isRecommended: false,
     categoryId: '',
     tags: [],
@@ -78,6 +82,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
         summary: existingArticle.excerpt || '',
         password: '',
         allowComments: true,
+        allowCommenterEdit: true,
+        allowCommenterDelete: true,
         isRecommended: false,
         categoryId: existingArticle.categoryId || '',
         tags: existingArticle.tags || [],
@@ -219,6 +225,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
       summary: attrs.summary ?? prev.summary,
       password: attrs.password ?? prev.password,
       allowComments: attrs.allowComments ?? prev.allowComments,
+      allowCommenterEdit: attrs.allowCommenterEdit ?? prev.allowCommenterEdit,
+      allowCommenterDelete: attrs.allowCommenterDelete ?? prev.allowCommenterDelete,
       isRecommended: attrs.isRecommended ?? prev.isRecommended,
       categoryId: attrs.categoryId ?? prev.categoryId,
       tags: attrs.tags ?? prev.tags,
@@ -323,6 +331,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
           summary: draft.summary,
           password: draft.password,
           allowComments: draft.allowComments,
+          allowCommenterEdit: draft.allowCommenterEdit,
+          allowCommenterDelete: draft.allowCommenterDelete,
           isRecommended: draft.isRecommended,
           categoryId: draft.categoryId,
           tags: draft.tags,
