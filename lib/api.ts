@@ -4,7 +4,9 @@ const API_BASE = '';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  console.log(`[fetchAPI] ${options?.method || 'GET'} ${url}`);
+  const method = options?.method || 'GET';
+  console.log(`[fetchAPI] ${method} ${url} | credentials=include | body=${options?.body ? 'yes' : 'no'}`);
+  console.log(`[fetchAPI] cookies for this domain:`, document.cookie || '(none)');
   const response = await fetch(url, {
     ...options,
     headers: {
