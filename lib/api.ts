@@ -1,6 +1,6 @@
 import { ArticleResponse, CategoryResponse, UserResponse, CreateArticleRequest, UpdateArticleRequest, CreateCategoryRequest, UpdateCategoryRequest, CreateTagRequest, UpdateTagRequest, TagResponse } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = '';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
