@@ -176,6 +176,13 @@ export async function getUserById(id: string) {
   return fetchAPI<UserResponse>(`/api/users/${id}`);
 }
 
+export async function createUser(data: CreateUserRequest) {
+  return fetchAPI<UserResponse>('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function updateUser(id: string, data: Record<string, unknown>) {
   return fetchAPI<UserResponse>(`/api/users/${id}`, {
     method: 'PUT',
