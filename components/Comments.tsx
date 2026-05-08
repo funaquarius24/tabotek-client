@@ -16,6 +16,10 @@ interface Comment {
   createdAt: string;
 }
 
+interface ThreadedComment extends Comment {
+  replies: ThreadedComment[];
+}
+
 interface PageInfo {
   total: number;
   page: number;
@@ -27,9 +31,9 @@ interface CommentsProps {
   articleSlug: string;
 }
 
-function buildTree(comments: Comment[]): (Comment & { replies: Comment[] })[] {
-  const map = new Map<string, Comment & { replies: Comment[] }>();
-  const roots: (Comment & { replies: Comment[] })[] = [];
+function buildTree(comments: Comment[]): ThreadedComment[] {
+  const map = new Map<string, ThreadedComment>();
+  const roots: ThreadedComment[] = [];
   const sorted = [...comments].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -45,7 +49,7 @@ function CommentThread({
   comment, articleSlug, currentUser, isAdmin, articleAuthorId,
   onDelete, onReply, onLike, onEdit, onHide, onFlag, depth,
 }: {
-  comment: Comment & { replies: Comment[] };
+  comment: ThreadedComment;
   articleSlug: string;
   currentUser: { _id: string; role: string } | null;
   isAdmin: boolean;
