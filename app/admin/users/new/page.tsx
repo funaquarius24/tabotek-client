@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchAPI } from '@/lib/api';
 
 const ROLES = ['user', 'author', 'editor', 'admin', 'superuser'] as const;
 
