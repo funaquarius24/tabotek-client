@@ -23,7 +23,7 @@ export default function NewCategoryPage() {
     if (!name || !slug) return;
 
     createMutation.mutate(
-      { name, slug, description, parentCategory, featured },
+      { name, slug, description, icon: '', color: '', parentCategory, featured },
       { onSuccess: () => router.push('/admin/categories') }
     );
   };
