@@ -6,16 +6,18 @@ async function handler(request: Request) {
   const search = url.search;
   const backendPath = `${BACKEND_URL}${path}${search}`;
 
+  const cookie = request.headers.get('cookie');
+  console.log(`[API Proxy] ${request.method} ${path} | cookie=${cookie?.substring(0, 60)}`);
+
   const headers = new Headers(request.headers);
   headers.delete('host');
 
-  const body = request.method !== 'GET' && request.method !== 'HEAD' ? await request.blob() : undefined;
+  const fetchOptions: RequestInit = { method: request.method, headers };
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    fetchOptions.body = await request.blob();
+  }
 
-  const response = await fetch(backendPath, {
-    method: request.method,
-    headers,
-    body,
-  });
+  const response = await fetch(backendPath, fetchOptions);
 
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete('content-encoding');
