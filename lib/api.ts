@@ -1,4 +1,4 @@
-import { ArticleResponse, CategoryResponse, UserResponse, CreateArticleRequest, UpdateArticleRequest, CreateCategoryRequest, UpdateCategoryRequest, CreateTagRequest, UpdateTagRequest, TagResponse } from './types';
+import { ArticleResponse, CategoryResponse, UserResponse, CreateArticleRequest, UpdateArticleRequest, CreateCategoryRequest, UpdateCategoryRequest, CreateTagRequest, UpdateTagRequest, TagResponse, CreateUserRequest } from './types';
 
 const API_BASE = '';
 

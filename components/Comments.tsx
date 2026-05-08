@@ -181,7 +181,7 @@ export default function Comments({ articleSlug }: CommentsProps) {
   const [error, setError] = useState('');
 
   const currentUser = user ? { _id: user._id, role: user.role } : null;
-  const isAdmin = user && (user.role === 'admin' || user.role === 'superuser');
+  const isAdmin = !!(user && (user.role === 'admin' || user.role === 'superuser'));
 
   const fetchComments = useCallback(async (page = 1, append = false) => {
     try {
