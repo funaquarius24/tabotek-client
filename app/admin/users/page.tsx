@@ -1,79 +1,86 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getRoleDisplayName, getRoleColorClass, ROLES, ROLE_LEVELS } from '@/lib/roles';
 import { UserResponse } from '@/lib/types';
 import { useUsers } from '@/lib/hooks/useUsers';
 import { useAuth } from '@/components/providers/AuthProvider';
 import AdminUsersTable from '@/components/admin/UsersTable';
+import Pagination from '@/components/admin/Pagination';
 
 export default function AdminUsersPage() {
   const { user: authUser } = useAuth();
-  const { data, isLoading, error } = useUsers();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [stats, setStats] = useState<any>(null);
 
+  useEffect(() => {
+    fetch('/api/admin/stats').then(r => r.ok && r.json()).then(d => setStats(d)).catch(() => {});
+  }, []);
+
+  const params: any = { page, limit: pageSize, sort: 'createdAt', order: 'desc' };
+  if (search) params.search = search;
+  if (roleFilter) params.role = roleFilter;
+
+  const { data, isLoading, error } = useUsers(params);
   const users: UserResponse[] = data?.users || [];
-  const roleCounts = users.reduce((acc, user) => {
-    acc[user.role] = (acc[user.role] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
+  const pagination = data?.pagination;
+
+  const roleStats = [
+    { role: 'superuser' as const, label: 'Superusers', icon: '👑', bgColor: 'bg-gradient-to-r from-purple-100 to-pink-100' },
+    { role: 'admin' as const, label: 'Administrators', icon: '👑', bgColor: 'bg-red-100' },
+    { role: 'editor' as const, label: 'Editors', icon: '✏️', bgColor: 'bg-green-100' },
+    { role: 'author' as const, label: 'Authors', icon: '📝', bgColor: 'bg-purple-100' },
+    { role: 'user' as const, label: 'Users', icon: '👤', bgColor: 'bg-gray-100' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600 mt-2">
-            Manage user accounts, roles, and permissions.
-          </p>
+          <p className="text-gray-600 mt-2">Manage user accounts, roles, and permissions.</p>
         </div>
-        <Link
-          href="/admin/users/new"
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-        >
-          + Add User
-        </Link>
+        <Link href="/admin/users/new" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">+ Add User</Link>
       </div>
-      
-      {/* Role Stats */}
+
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Users</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{users.length}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.totalUsers ?? '-'}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <span className="text-2xl">👥</span>
-            </div>
+            <div className="p-3 bg-blue-100 rounded-lg"><span className="text-2xl">👥</span></div>
           </div>
         </div>
-        
-        {(['superuser', 'admin', 'editor', 'author', 'user'] as const).map((role) => {
-          const roleConfig = {
-            superuser: { label: 'Superusers', icon: '👑', bgColor: 'bg-gradient-to-r from-purple-100 to-pink-100' },
-            admin: { label: 'Administrators', icon: '👑', bgColor: 'bg-red-100' },
-            editor: { label: 'Editors', icon: '✏️', bgColor: 'bg-green-100' },
-            author: { label: 'Authors', icon: '📝', bgColor: 'bg-purple-100' },
-            user: { label: 'Users', icon: '👤', bgColor: 'bg-gray-100' },
-          }[role];
-          
-          return (
-            <div key={role} className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">{roleConfig.label}</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{roleCounts[role] || 0}</p>
-                </div>
-                <div className={`p-3 ${roleConfig.bgColor} rounded-lg`}>
-                  <span className="text-2xl">{roleConfig.icon}</span>
-                </div>
+        {roleStats.map(({ role, label, icon, bgColor }) => (
+          <div key={role} className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{label}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.roleCounts?.[role] ?? '-'}</p>
               </div>
+              <div className={`p-3 ${bgColor} rounded-lg`}><span className="text-2xl">{icon}</span></div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
-      
-      {/* Users Table */}
+
+      <div className="flex flex-wrap gap-4 bg-white rounded-xl shadow-md p-4 items-center">
+        <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name or email..." className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-64" />
+        <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }} className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+          <option value="">All Roles</option>
+          <option value="superuser">Superuser</option>
+          <option value="admin">Admin</option>
+          <option value="editor">Editor</option>
+          <option value="author">Author</option>
+          <option value="user">User</option>
+        </select>
+      </div>
+
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {isLoading ? (
           <div className="text-center py-12">
@@ -87,86 +94,13 @@ export default function AdminUsersPage() {
             <p className="text-gray-500 mb-6">Please try again later</p>
           </div>
         ) : (
-          <AdminUsersTable users={users} currentUserId={authUser?._id} currentUserRole={authUser?.role as any} />
+          <>
+            <AdminUsersTable users={users} currentUserId={authUser?._id} currentUserRole={authUser?.role as any} />
+            {pagination && (
+              <Pagination page={page} totalPages={pagination.totalPages} total={pagination.total} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+            )}
+          </>
         )}
-      </div>
-      
-      {/* Role Permissions */}
-      <div className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Role Permissions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {([
-            {
-              role: 'superuser',
-              title: 'Superuser',
-              permissions: [
-                { allowed: true, text: 'Full system access' },
-                { allowed: true, text: 'Manage all content' },
-                { allowed: true, text: 'User management' },
-                { allowed: true, text: 'System settings' },
-                { allowed: true, text: 'Override any restrictions' },
-              ],
-            },
-            {
-              role: 'admin',
-              title: 'Administrator',
-              permissions: [
-                { allowed: true, text: 'Full system access' },
-                { allowed: true, text: 'Manage all content' },
-                { allowed: true, text: 'User management' },
-                { allowed: true, text: 'System settings' },
-                { allowed: false, text: 'Override superuser settings' },
-              ],
-            },
-            {
-              role: 'editor',
-              title: 'Editor',
-              permissions: [
-                { allowed: true, text: 'Create/edit articles' },
-                { allowed: true, text: 'Manage categories' },
-                { allowed: true, text: 'Upload media' },
-                { allowed: false, text: 'User management' },
-                { allowed: false, text: 'System settings' },
-              ],
-            },
-            {
-              role: 'author',
-              title: 'Author',
-              permissions: [
-                { allowed: true, text: 'Create/edit own articles' },
-                { allowed: true, text: 'Upload media' },
-                { allowed: false, text: 'Publish articles' },
-                { allowed: false, text: 'Manage categories' },
-                { allowed: false, text: 'User management' },
-              ],
-            },
-            {
-              role: 'user',
-              title: 'User',
-              permissions: [
-                { allowed: true, text: 'View content' },
-                { allowed: true, text: 'Comment on articles' },
-                { allowed: false, text: 'Create content' },
-                { allowed: false, text: 'Upload media' },
-                { allowed: false, text: 'Manage categories' },
-              ],
-            },
-          ] as const).map(({ role, title, permissions }) => (
-            <div key={role} className="bg-white rounded-lg p-4 shadow-sm">
-              <h4 className="font-medium text-gray-900 mb-3">{title}</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                {permissions.map((permission, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className={permission.allowed ? 'text-green-500' : 'text-red-500'}>
-                      {permission.allowed ? '✓' : '✗'}
-                    </span>
-                    <span>{permission.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

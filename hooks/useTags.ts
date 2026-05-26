@@ -13,7 +13,8 @@ export const tagKeys = {
 export function useTags(params?: any) {
   return useQuery({
     queryKey: tagKeys.list(params),
-    queryFn: () => getTags(),
+    queryFn: () => getTags(params),
+    placeholderData: (prev) => prev,
   });
 }
 

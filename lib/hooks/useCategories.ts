@@ -7,6 +7,7 @@ export function useCategories(params?: any) {
   return useQuery({
     queryKey: queryKeys.categories.list(params),
     queryFn: () => api.getCategories(params),
+    placeholderData: (prev) => prev,
   });
 }
 

@@ -34,11 +34,12 @@ export const fileProvider = {
     return res.json();
   },
 
-  async getFiles(params?: { page?: number; limit?: number; type?: string }): Promise<{ files: FileRecord[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
+  async getFiles(params?: { page?: number; limit?: number; type?: string; search?: string }): Promise<{ files: FileRecord[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.limit) searchParams.set('limit', params.limit.toString());
     if (params?.type) searchParams.set('type', params.type);
+    if (params?.search) searchParams.set('search', params.search);
 
     const query = searchParams.toString();
     const res = await fetch(`${API_BASE}/api/files${query ? `?${query}` : ''}`, {

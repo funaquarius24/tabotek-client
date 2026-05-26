@@ -84,13 +84,18 @@ export async function voteArticle(slug: string, vote: 'like' | 'dislike' | null,
 }
 
 // Categories
-export async function getCategories(params?: { featured?: boolean; parent?: string }) {
+export async function getCategories(params?: { featured?: boolean; parent?: string; search?: string; page?: number; limit?: number; sort?: string; order?: string }) {
   const searchParams = new URLSearchParams();
   if (params?.featured) searchParams.set('featured', 'true');
   if (params?.parent) searchParams.set('parent', params.parent);
+  if (params?.search) searchParams.set('search', params.search);
+  if (params?.page) searchParams.set('page', params.page.toString());
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.sort) searchParams.set('sort', params.sort);
+  if (params?.order) searchParams.set('order', params.order);
 
   const query = searchParams.toString();
-  return fetchAPI<{ categories: CategoryResponse[] }>(`/api/categories${query ? `?${query}` : ''}`);
+  return fetchAPI<{ categories: CategoryResponse[]; pagination?: { total: number; page: number; limit: number; totalPages: number } }>(`/api/categories${query ? `?${query}` : ''}`);
 }
 
 export async function getCategoryBySlug(slug: string) {
@@ -112,8 +117,16 @@ export async function updateCategory(id: string, data: UpdateCategoryRequest) {
 }
 
 // Tags
-export async function getTags() {
-  return fetchAPI<{ tags: TagResponse[] }>('/api/tags');
+export async function getTags(params?: { search?: string; page?: number; limit?: number; sort?: string; order?: string }) {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.set('search', params.search);
+  if (params?.page) searchParams.set('page', params.page.toString());
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.sort) searchParams.set('sort', params.sort);
+  if (params?.order) searchParams.set('order', params.order);
+
+  const query = searchParams.toString();
+  return fetchAPI<{ tags: TagResponse[]; pagination?: { total: number; page: number; limit: number; totalPages: number } }>(`/api/tags${query ? `?${query}` : ''}`);
 }
 
 export async function getTagBySlug(slug: string) {
@@ -170,8 +183,17 @@ export async function deleteCategory(id: string) {
 }
 
 // Users
-export async function getUsers() {
-  return fetchAPI<{ users: UserResponse[] }>('/api/users');
+export async function getUsers(params?: { search?: string; role?: string; page?: number; limit?: number; sort?: string; order?: string }) {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.set('search', params.search);
+  if (params?.role) searchParams.set('role', params.role);
+  if (params?.page) searchParams.set('page', params.page.toString());
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.sort) searchParams.set('sort', params.sort);
+  if (params?.order) searchParams.set('order', params.order);
+
+  const query = searchParams.toString();
+  return fetchAPI<{ users: UserResponse[]; pagination?: { total: number; page: number; limit: number; totalPages: number } }>(`/api/users${query ? `?${query}` : ''}`);
 }
 
 export async function getUserById(id: string) {
