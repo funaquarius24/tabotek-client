@@ -4,10 +4,25 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const diff = now - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
 export default function AdminDashboard() {
   const { isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activity, setActivity] = useState<any[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
@@ -24,6 +39,23 @@ export default function AdminDashboard() {
       }
     }
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    async function fetchActivity() {
+      try {
+        const res = await fetch('/api/admin/recent-activity');
+        if (res.ok) {
+          const data = await res.json();
+          setActivity(data.activity || []);
+        }
+      } catch (error) {
+        console.error('Error fetching activity:', error);
+      } finally {
+        setActivityLoading(false);
+      }
+    }
+    fetchActivity();
   }, []);
 
   if (authLoading || loading) {
@@ -197,40 +229,31 @@ export default function AdminDashboard() {
       {/* Recent Activity */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <span className="text-lg">📝</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-gray-900">New article published</p>
-              <p className="text-sm text-gray-500">"Getting Started with Next.js 15" was published 2 hours ago</p>
-            </div>
-            <span className="text-sm text-gray-500">2h ago</span>
+        {activityLoading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-3 text-gray-500">Loading recent activity...</p>
           </div>
-
-          <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <span className="text-lg">📂</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-gray-900">Category updated</p>
-              <p className="text-sm text-gray-500">"Web Development" category was modified 5 hours ago</p>
-            </div>
-            <span className="text-sm text-gray-500">5h ago</span>
+        ) : activity.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No recent activity to display.</p>
           </div>
-
-          <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <span className="text-lg">👤</span>
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-gray-900">New user registered</p>
-              <p className="text-sm text-gray-500">"Alex Johnson" joined as an author yesterday</p>
-            </div>
-            <span className="text-sm text-gray-500">1d ago</span>
+        ) : (
+          <div className="space-y-4">
+            {activity.map((item, index) => (
+              <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className={`p-2 ${item.color} rounded-lg`}>
+                  <span className="text-lg">{item.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900">{item.title}</p>
+                  <p className="text-sm text-gray-500 truncate">{item.description}</p>
+                </div>
+                <span className="text-sm text-gray-500 whitespace-nowrap">{timeAgo(item.timestamp)}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
