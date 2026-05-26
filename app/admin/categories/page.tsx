@@ -165,7 +165,7 @@ export default function AdminCategoriesPage() {
             )}
           </>
         ) : (
-          <div className="divide-y divide-gray-200">{renderTree(categoryTree)}</div>
+          <div className="divide-y divide-gray-200">{renderTree(categoryTree || [])}</div>
         )}
       </div>
 
