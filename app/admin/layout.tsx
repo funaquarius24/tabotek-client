@@ -114,6 +114,16 @@ export default function AdminLayout({
               <span className="font-medium">Requests</span>
             </Link>
 
+            {user.role === 'superuser' && (
+              <Link
+                href="/admin/backup"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
+              >
+                <span className="text-lg">💾</span>
+                <span className="font-medium">Backup Database</span>
+              </Link>
+            )}
+
             <Link
               href="/admin/settings"
               className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
