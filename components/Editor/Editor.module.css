@@ -16,6 +16,16 @@
   user-select: none;
 }
 
+@media (max-width: 767px) {
+  .menuBar {
+    flex-wrap: wrap;
+  }
+
+  .menuItem {
+    padding: 4px 10px;
+  }
+}
+
 .menuItemWrapper {
   position: relative;
 }
