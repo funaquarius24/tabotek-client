@@ -9,6 +9,7 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import styles from './Editor.module.css';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react').then(m => m.default), { ssr: false });
+const LexicalEditor = dynamic(() => import('@/components/LexicalEditor'), { ssr: false });
 
 export interface EditorChange {
   value: string;
@@ -29,6 +30,14 @@ const FONT_FAMILIES = ['Geist Mono', 'Consolas', 'Courier New', 'monospace'];
 const FONT_SIZES = [10, 12, 13, 14, 15, 16, 18, 20, 22, 24];
 
 export default function Editor({ defaultValue: _defaultValue = '', onChange, onSave, showToc = true }: EditorProps) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   const [value, setValue] = useState(_defaultValue);
   const [html, setHtml] = useState('');
   const [toc, setToc] = useState<TocItem[]>([]);
@@ -352,6 +361,44 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
   }), [value, onSave, triggerEditorAction, insertAtCursor, toggleFormat, toggleHeading, closeMenu, handleImageUploadClick, handleVideoUploadClick]);
 
   const isUploading = uploadState.status === 'validating' || uploadState.status === 'requesting_url' || uploadState.status === 'uploading';
+
+  if (isMobile) {
+    return (
+      <div className={styles.container} ref={containerRef} onKeyDown={handleKeyDown}>
+        <div className={styles.menuBar} ref={menuBarRef}>
+          {(Object.keys(menus) as (keyof typeof menus)[]).map((key) => (
+            <div key={key} className={styles.menuItemWrapper}>
+              <button
+                className={`${styles.menuItem} ${activeMenu === key ? styles.menuItemActive : ''}`}
+                onClick={() => setActiveMenu(activeMenu === key ? null : key)}
+              >
+                {key}
+              </button>
+              {activeMenu === key && (
+                <div className={styles.menuDropdown}>
+                  {(menus[key] as any[]).map((item: any, i: number) => {
+                    if (item.type === 'divider') return <div key={i} className={styles.menuDivider} />;
+                    return (
+                      <button key={i} className={styles.menuDropdownItem} onClick={item.onClick}>
+                        <span>{item.label}</span>
+                        {item.shortcut && <span className={styles.menuShortcut}>{item.shortcut}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <LexicalEditor
+          defaultValue={_defaultValue}
+          onChange={onChange}
+          onSave={onSave}
+          showToc={showToc}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

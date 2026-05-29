@@ -92,6 +92,30 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     }
   }, [existingArticle, editId, editorKey]);
 
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const sw = screen.width;
+      const sh = screen.height;
+      const dpr = window.devicePixelRatio || 1;
+      const inches = (diagonal: number) => (diagonal / 96).toFixed(1);
+      const cm = (diagonal: number) => ((diagonal / 96) * 2.54).toFixed(1);
+      const diagPx = Math.sqrt(sw * sw + sh * sh);
+      const msg = [
+        `Mobile browser detected`,
+        ``,
+        `Viewport: ${vw} x ${vh} px`,
+        `Screen: ${sw} x ${sh} px (physical)`,
+        `Device pixel ratio: ${dpr}`,
+        `Est. diagonal: ${inches(diagPx)}" / ${cm(diagPx)} cm (at 96 DPI)`,
+      ].join('\n');
+      console.log('[ArticleEditor] ' + msg);
+      window.alert(msg);
+    }
+  }, []);
+
   const [hasSaved, setHasSaved] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -252,7 +276,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
           }}
           placeholder="Article title..."
         />
-        <div className={styles.actions}>
+        <div className={styles.actionsRow}>
           <button
             className={`${styles.btn} ${styles.btnDraft} ${saving ? styles.btnDisabled : ''}`}
             onClick={() => saveOrPublish('draft')}
@@ -284,6 +308,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
           >
             TOC {showToc ? 'ON' : 'OFF'}
           </button>
+        </div>
+        <div className={styles.actionsRow}>
           <button
             className={`${styles.btn} ${styles.btnSettings}`}
             onClick={() => setSettingsOpen(true)}
