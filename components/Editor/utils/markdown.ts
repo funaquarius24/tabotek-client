@@ -16,6 +16,8 @@ const converter = new showdown.Converter({
 });
 
 converter.setFlavor('github');
+converter.setOption('underline', true);
+converter.setOption('literalMidWordUnderscores', false);
 
 export interface TocItem {
   level: string;

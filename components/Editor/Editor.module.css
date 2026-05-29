@@ -211,6 +211,14 @@
   text-decoration: underline;
 }
 
+.previewPane u {
+  text-decoration: underline;
+}
+
+.previewPane del {
+  text-decoration: line-through;
+}
+
 .previewPane blockquote {
   margin: 1em 0;
   padding: 0.5em 1em;

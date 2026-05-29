@@ -16,7 +16,7 @@ import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode, $toggleLink } from '@lexical/link';
 import { $getSelection, $isRangeSelection, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { $createHeadingNode } from '@lexical/rich-text';
-import { $setBlocksType } from '@lexical/selection';
+import { $setBlocksType, $patchStyleText, $getSelectionStyleValueForProperty } from '@lexical/selection';
 import { makeHtml, makeToc, type TocItem } from '@/components/Editor/utils/markdown';
 import { fileProvider } from '@/lib/providers/file';
 import { useImageUpload } from '@/hooks/useImageUpload';
@@ -63,6 +63,7 @@ function ToolbarPlugin({
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
   const [isStrikethrough, setIsStrikethrough] = useState(false);
+  const [fontSize, setFontSize] = useState('16');
 
   useEffect(() => {
     return editor.registerCommand(
@@ -80,6 +81,8 @@ function ToolbarPlugin({
         setIsItalic(selection.hasFormat('italic'));
         setIsUnderline(selection.hasFormat('underline'));
         setIsStrikethrough(selection.hasFormat('strikethrough'));
+        const currentSize = $getSelectionStyleValueForProperty(selection, 'font-size', '16');
+        setFontSize(currentSize.replace('px', ''));
         return false;
       },
       1,
@@ -170,6 +173,33 @@ function ToolbarPlugin({
         {[1, 2, 3, 4, 5, 6].map((l) => (
           <option key={l} value={l}>H{l}</option>
         ))}
+      </select>
+
+      <select
+        className={styles.toolbarSelect}
+        value={fontSize}
+        onChange={(e) => {
+          const v = e.target.value;
+          setFontSize(v);
+          editor.update(() => {
+            const sel = $getSelection();
+            if ($isRangeSelection(sel)) {
+              $patchStyleText(sel, { 'font-size': v + 'px' });
+            }
+          });
+        }}
+        title="Font Size"
+      >
+        <option value="10">10px</option>
+        <option value="12">12px</option>
+        <option value="13">13px</option>
+        <option value="14">14px</option>
+        <option value="15">15px</option>
+        <option value="16">16px</option>
+        <option value="18">18px</option>
+        <option value="20">20px</option>
+        <option value="22">22px</option>
+        <option value="24">24px</option>
       </select>
 
       <div className={styles.toolbarDivider} />

@@ -2,11 +2,16 @@
 
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { loader } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { makeHtml, makeToc, TocItem } from './utils/markdown';
 import { fileProvider } from '@/lib/providers/file';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import styles from './Editor.module.css';
+
+if (typeof window !== 'undefined') {
+  loader.config({ paths: { vs: '/monaco-editor/vs' } });
+}
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react').then(m => m.default), { ssr: false });
 const LexicalEditor = dynamic(() => import('@/components/LexicalEditor'), { ssr: false });
@@ -486,11 +491,28 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
 
         <select
           className={styles.formatSelect}
-          value={fontSize}
-          onChange={(e) => setFontSize(parseInt(e.target.value))}
+          value=""
+          onChange={(e) => {
+            const v = parseInt(e.target.value);
+            if (!v) return;
+            const ed = editorRef.current;
+            if (!ed) return;
+            const sel = ed.getSelection();
+            if (!sel) return;
+            const model = ed.getModel();
+            if (!model) return;
+            const text = model.getValueInRange(sel);
+            if (!text) return;
+            if (sel.isEmpty()) return;
+            const newText = `<span style="font-size: ${v}px">${text}</span>`;
+            ed.executeEdits('font-size', [{ range: sel, text: newText, forceMoveMarkers: true }]);
+            ed.focus();
+            e.target.value = '';
+          }}
           title="Font Size"
         >
-          {FONT_SIZES.map(s => (
+          <option value="" disabled>Font Size</option>
+          {[10, 12, 13, 14, 15, 16, 18, 20, 22, 24].map(s => (
             <option key={s} value={s}>{s}px</option>
           ))}
         </select>
@@ -499,6 +521,9 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
 
         <button className={styles.formatBtn} title="Insert Image" onClick={handleImageUploadClick}>
           🖼️
+        </button>
+        <button className={styles.formatBtn} title="Insert Video" onClick={handleVideoUploadClick}>
+          🎬
         </button>
 
         <div className={styles.formatDivider} />
@@ -509,7 +534,7 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
         <button className={styles.formatBtn} title="Italic (Ctrl+I)" onClick={() => toggleFormat('*')}>
           <em>I</em>
         </button>
-        <button className={styles.formatBtn} title="Underline (Ctrl+U)" onClick={() => toggleFormat('++')}>
+        <button className={styles.formatBtn} title="Underline (Ctrl+U)" onClick={() => toggleFormat('__')}>
           <span style={{ textDecoration: 'underline' }}>U</span>
         </button>
         <button className={styles.formatBtn} title="Strikethrough" onClick={() => toggleFormat('~~')}>
