@@ -365,44 +365,18 @@ function ToolbarPlugin({
   );
 }
 
-function LexicalEditorSurface({
-  defaultValue,
-  onChange,
-  onImageUpload,
-  onVideoUpload,
-}: {
-  defaultValue: string;
-  onChange: (markdown: string) => void;
-  onImageUpload: () => void;
-  onVideoUpload: () => void;
-}) {
-  const initialConfig = useMemo(() => ({
-    namespace: 'MobileEditor',
-    nodes: EDITOR_NODES,
-    theme: {},
-    onError: (error: Error) => {
-      console.error('[LexicalEditor]', error);
-    },
-  }), []);
-
+function EditorContentSurface() {
+  const [editor] = useLexicalComposerContext();
   return (
-    <LexicalComposer initialConfig={initialConfig}>
-      <MarkdownInitializer text={defaultValue} />
-      <ToolbarPlugin
-        onImageUpload={onImageUpload}
-        onVideoUpload={onVideoUpload}
+    <div className={styles.editorWrapper} style={{ position: 'relative' }}>
+      <RichTextPlugin
+        contentEditable={<ContentEditable className={styles.editorInput} />}
+        placeholder={<div style={{ padding: '12px 16px', color: '#9ca3af', position: 'absolute' }}>Start writing...</div>}
+        ErrorBoundary={LexicalErrorBoundary}
       />
-      <div className={styles.editorWrapper} style={{ position: 'relative' }}>
-        <RichTextPlugin
-          contentEditable={<ContentEditable className={styles.editorInput} />}
-          placeholder={<div style={{ padding: '12px 16px', color: '#9ca3af', position: 'absolute' }}>Start writing...</div>}
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <HistoryPlugin />
-        <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-      </div>
-      <MarkdownEmitter onChange={onChange} />
-    </LexicalComposer>
+      <HistoryPlugin />
+      <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+    </div>
   );
 }
 
@@ -546,6 +520,15 @@ export default function LexicalEditor({
 
   const isUploading = uploadState.status === 'validating' || uploadState.status === 'requesting_url' || uploadState.status === 'uploading';
 
+  const initialConfig = useMemo(() => ({
+    namespace: 'MobileEditor',
+    nodes: EDITOR_NODES,
+    theme: {},
+    onError: (error: Error) => {
+      console.error('[LexicalEditor]', error);
+    },
+  }), []);
+
   return (
     <div
       className={`${styles.container} ${isDragOver ? styles.dragOver : ''}`}
@@ -570,14 +553,17 @@ export default function LexicalEditor({
         onChange={handleVideoFileChange}
       />
 
-      <LexicalEditorSurface
-        defaultValue={defaultValue}
-        onChange={handleMarkdownChange}
-        onImageUpload={handleImageUploadClick}
-        onVideoUpload={handleVideoUploadClick}
-      />
-
-      <div className={styles.panes}>
+      <LexicalComposer initialConfig={initialConfig}>
+        <MarkdownInitializer text={defaultValue} />
+        <ToolbarPlugin
+          onImageUpload={handleImageUploadClick}
+          onVideoUpload={handleVideoUploadClick}
+        />
+        <MarkdownEmitter onChange={handleMarkdownChange} />
+        <div className={styles.panes}>
+          <div className={styles.editorPane}>
+            <EditorContentSurface />
+          </div>
         <div
           className={styles.previewPane}
           ref={previewRef}
@@ -606,6 +592,7 @@ export default function LexicalEditor({
           </div>
         )}
       </div>
+      </LexicalComposer>
 
       {(isDragOver || isUploading) && (
         <div className={styles.uploadOverlay}>
