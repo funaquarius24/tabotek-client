@@ -32,6 +32,7 @@ export async function getArticles(params?: {
   category?: string;
   status?: string;
   search?: string;
+  authorId?: string;
 }) {
   const searchParams = new URLSearchParams();
   if (params?.limit) searchParams.set('limit', params.limit.toString());
@@ -39,6 +40,7 @@ export async function getArticles(params?: {
   if (params?.category) searchParams.set('category', params.category);
   if (params?.status) searchParams.set('status', params.status);
   if (params?.search) searchParams.set('search', params.search);
+  if (params?.authorId) searchParams.set('authorId', params.authorId);
 
   const query = searchParams.toString();
   return fetchAPI<{ articles: ArticleResponse[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>(

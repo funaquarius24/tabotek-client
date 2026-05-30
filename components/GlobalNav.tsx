@@ -156,6 +156,12 @@ export default function GlobalNav() {
                   <span>Publish</span>
                 </Link>
               )}
+              {user && ['author', 'editor', 'admin', 'superuser'].includes(user.role) && (
+                <Link href="/author/articles" className={styles.authorDashboardLink}>
+                  <span>📊</span>
+                  <span>Dashboard</span>
+                </Link>
+              )}
               <button className={styles.signOutButton} onClick={signOut}>
                 Sign Out
               </button>
