@@ -35,13 +35,7 @@ const FONT_FAMILIES = ['Roboto', 'Inter', 'Poppins', 'Geist Mono', 'Consolas', '
 const FONT_SIZES = [10, 12, 13, 14, 15, 16, 18, 20, 22, 24];
 
 export default function Editor({ defaultValue: _defaultValue = '', onChange, onSave, showToc = true }: EditorProps) {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const [isMobile, setIsMobile] = useState(true);
 
   const [value, setValue] = useState(_defaultValue);
   const [html, setHtml] = useState('');
