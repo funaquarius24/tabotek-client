@@ -432,6 +432,9 @@ export default function LexicalEditor({
 
   const handleMarkdownChange = useCallback((md: string) => {
     setMarkdown(md);
+    const h = makeHtml(md);
+    const t = makeToc(h);
+    emitRef.current?.({ value: md, html: h, toc: t });
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
