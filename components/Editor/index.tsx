@@ -154,6 +154,69 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
     replaceSelectedText(before, after);
   }, [replaceSelectedText]);
 
+  const toggleLinePrefix = useCallback((prefix: string) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const sel = ed.getSelection();
+    if (!sel) return;
+    const model = ed.getModel();
+    if (!model) return;
+    const line = sel.startLineNumber;
+    const lineContent = model.getLineContent(line);
+    if (lineContent.trimStart().startsWith(prefix)) {
+      const idx = lineContent.indexOf(prefix);
+      const range = { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: idx + prefix.length + 1 };
+      model.applyEdits([{ range, text: '', forceMoveMarkers: true }]);
+    } else {
+      const range = { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 };
+      model.applyEdits([{ range, text: prefix, forceMoveMarkers: true }]);
+    }
+    ed.focus();
+  }, []);
+
+  const toggleList = useCallback((marker: string) => {
+    toggleLinePrefix(`${marker} `);
+  }, [toggleLinePrefix]);
+
+  const toggleBlockquote = useCallback(() => {
+    toggleLinePrefix('> ');
+  }, [toggleLinePrefix]);
+
+  const indentLine = useCallback((amount: number) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const sel = ed.getSelection();
+    if (!sel) return;
+    const model = ed.getModel();
+    if (!model) return;
+    const line = sel.startLineNumber;
+    const lineContent = model.getLineContent(line);
+    if (amount > 0) {
+      const spaces = ' '.repeat(amount);
+      model.applyEdits([{ range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 }, text: spaces, forceMoveMarkers: true }]);
+    } else {
+      const remove = Math.min(-amount, lineContent.search(/\S|$/));
+      if (remove > 0) {
+        model.applyEdits([{ range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 + remove }, text: '', forceMoveMarkers: true }]);
+      }
+    }
+    ed.focus();
+  }, []);
+
+  const setAlignment = useCallback((align: string) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const sel = ed.getSelection();
+    if (!sel) return;
+    const model = ed.getModel();
+    if (!model) return;
+    const text = model.getValueInRange(sel);
+    if (!text) return;
+    const aligned = `<div style="text-align: ${align}">${text}</div>`;
+    ed.executeEdits('align', [{ range: sel, text: aligned, forceMoveMarkers: true }]);
+    ed.focus();
+  }, []);
+
   const uploadAndInsertImage = useCallback(async (file: File) => {
     const url = await uploadFile(file);
     if (url) {
@@ -540,6 +603,43 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
         <button className={styles.formatBtn} title="Strikethrough" onClick={() => toggleFormat('~~')}>
           <span style={{ textDecoration: 'line-through' }}>S</span>
         </button>
+
+        <div className={styles.formatDivider} />
+
+        <button className={styles.formatBtn} title="Numbered List" onClick={() => toggleList('1.')}>
+          1.
+        </button>
+        <select
+          className={styles.formatSelect}
+          value=""
+          onChange={(e) => { const v = e.target.value; if (v) toggleList(v); e.target.value = ''; }}
+          title="Bulleted List"
+        >
+          <option value="" disabled>• List</option>
+          <option value="-">− disc</option>
+          <option value="*">∗ circle</option>
+          <option value="+">+ square</option>
+        </select>
+        <button className={styles.formatBtn} title="Blockquote" onClick={toggleBlockquote}>
+          ❝
+        </button>
+        <button className={styles.formatBtn} title="Indent More" onClick={() => indentLine(2)}>
+          →&thinsp;|
+        </button>
+        <button className={styles.formatBtn} title="Indent Less" onClick={() => indentLine(-2)}>
+          |&thinsp;←
+        </button>
+        <select
+          className={styles.formatSelect}
+          value=""
+          onChange={(e) => { const v = e.target.value; if (v) setAlignment(v); e.target.value = ''; }}
+          title="Alignment"
+        >
+          <option value="" disabled>Align</option>
+          <option value="left">≡ Left</option>
+          <option value="center">≡ Center</option>
+          <option value="right">≡ Right</option>
+        </select>
       </div>
 
       {(isDragOver || isUploading) && (

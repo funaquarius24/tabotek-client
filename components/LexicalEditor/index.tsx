@@ -11,11 +11,11 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { $convertFromMarkdownString, $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { ListNode, ListItemNode } from '@lexical/list';
+import { ListNode, ListItemNode, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode, $toggleLink } from '@lexical/link';
-import { $getSelection, $isRangeSelection, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from 'lexical';
-import { $createHeadingNode } from '@lexical/rich-text';
+import { $getSelection, $isRangeSelection, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
+import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType, $patchStyleText, $getSelectionStyleValueForProperty } from '@lexical/selection';
 import { makeHtml, makeToc, type TocItem } from '@/components/Editor/utils/markdown';
 import { fileProvider } from '@/lib/providers/file';
@@ -127,6 +127,44 @@ function ToolbarPlugin({
     });
   }, [editor]);
 
+  const toggleOrderedList = useCallback(() => {
+    editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+  }, [editor]);
+
+  const toggleUnorderedList = useCallback(() => {
+    editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+  }, [editor]);
+
+  const removeList = useCallback(() => {
+    editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
+  }, [editor]);
+
+  const toggleQuote = useCallback(() => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $setBlocksType(selection, () => $createQuoteNode());
+      }
+    });
+  }, [editor]);
+
+  const indentMore = useCallback(() => {
+    editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
+  }, [editor]);
+
+  const indentLess = useCallback(() => {
+    editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
+  }, [editor]);
+
+  const setAlignment = useCallback((align: string) => {
+    editor.update(() => {
+      const sel = $getSelection();
+      if ($isRangeSelection(sel)) {
+        $patchStyleText(sel, { 'text-align': align });
+      }
+    });
+  }, [editor]);
+
   return (
     <div className={styles.toolbar}>
       <button
@@ -227,6 +265,55 @@ function ToolbarPlugin({
         <option value="Consolas">Consolas</option>
         <option value="Courier New">Courier New</option>
         <option value="monospace">monospace</option>
+      </select>
+
+      <div className={styles.toolbarDivider} />
+
+      <button
+        className={styles.toolbarBtn}
+        onClick={toggleOrderedList}
+        title="Numbered List"
+      >
+        1.
+      </button>
+      <button
+        className={styles.toolbarBtn}
+        onClick={toggleUnorderedList}
+        title="Bulleted List"
+      >
+        •–
+      </button>
+      <button
+        className={styles.toolbarBtn}
+        onClick={toggleQuote}
+        title="Blockquote"
+      >
+        ❝
+      </button>
+      <button
+        className={styles.toolbarBtn}
+        onClick={indentMore}
+        title="Indent More"
+      >
+        →|
+      </button>
+      <button
+        className={styles.toolbarBtn}
+        onClick={indentLess}
+        title="Indent Less"
+      >
+        |←
+      </button>
+      <select
+        className={styles.toolbarSelect}
+        value=""
+        onChange={(e) => { const v = e.target.value; if (v) setAlignment(v); e.target.value = ''; }}
+        title="Alignment"
+      >
+        <option value="" disabled>Align</option>
+        <option value="left">≡ Left</option>
+        <option value="center">≡ Center</option>
+        <option value="right">≡ Right</option>
       </select>
 
       <div className={styles.toolbarDivider} />
