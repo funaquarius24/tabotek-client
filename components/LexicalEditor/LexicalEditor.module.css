@@ -10,8 +10,10 @@
 .editorWrapper {
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
   background: #fff;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .editorInput {
@@ -21,6 +23,9 @@
   line-height: 1.6;
   outline: none;
   overflow-y: auto;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .editorInput:focus {
