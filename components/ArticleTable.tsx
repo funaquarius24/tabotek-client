@@ -8,10 +8,11 @@ import { ArticleResponse } from '@/lib/types';
 interface ArticleTableProps {
   articles: ArticleResponse[];
   showCategory?: boolean;
+  showCreated?: boolean;
   actions?: (article: ArticleResponse) => ReactNode;
 }
 
-export default function ArticleTable({ articles, showCategory, actions }: ArticleTableProps) {
+export default function ArticleTable({ articles, showCategory, showCreated, actions }: ArticleTableProps) {
   const columns: ColumnDef<ArticleResponse>[] = [
     {
       accessorKey: 'title',
@@ -45,6 +46,19 @@ export default function ArticleTable({ articles, showCategory, actions }: Articl
             accessorKey: 'category' as const,
             header: 'Category',
             cell: () => <span className="text-sm text-gray-500">Uncategorized</span>,
+          } as ColumnDef<ArticleResponse>,
+        ]
+      : []),
+    ...(showCreated
+      ? [
+          {
+            accessorKey: 'createdAt' as const,
+            header: 'Created',
+            cell: ({ row }) => (
+              <span className="text-sm text-gray-500">
+                {row.original.createdAt ? new Date(row.original.createdAt).toLocaleDateString() : '-'}
+              </span>
+            ),
           } as ColumnDef<ArticleResponse>,
         ]
       : []),

@@ -7,20 +7,20 @@ import { useAuthorArticles, useDeleteArticle, useUpdateArticle } from '@/lib/hoo
 import { useToast } from '@/components/Toast';
 import ArticleTable from '@/components/ArticleTable';
 import ArticleFilterBar from '@/components/ArticleFilterBar';
+import Pagination from '@/components/admin/Pagination';
 import type { ArticleResponse } from '@/lib/types';
-
-const PAGE_SIZE = 15;
 
 export default function AuthorArticlesPage() {
   const { user } = useAuth();
   const { addToast } = useToast();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('publishedAt');
   const [sortOrder, setSortOrder] = useState<string>('-1');
 
-  const params: any = { limit: PAGE_SIZE, page };
+  const params: any = { limit: pageSize, page };
   if (statusFilter) params.status = statusFilter;
   if (search) params.search = search;
 
@@ -110,6 +110,7 @@ export default function AuthorArticlesPage() {
         ) : (
           <ArticleTable
             articles={sorted}
+            showCreated
             actions={(article) => (
               <>
                 {article.status !== 'published' && (
@@ -144,16 +145,8 @@ export default function AuthorArticlesPage() {
           />
         )}
 
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
-            <span className="text-sm text-gray-600">
-              Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
-            </span>
-            <div className="flex gap-2">
-              <button disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2 border rounded-lg text-sm bg-white hover:bg-gray-100 disabled:opacity-40">Previous</button>
-              <button disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)} className="px-4 py-2 border rounded-lg text-sm bg-white hover:bg-gray-100 disabled:opacity-40">Next</button>
-            </div>
-          </div>
+        {pagination && (
+          <Pagination page={page} totalPages={pagination.totalPages} total={pagination.total} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
         )}
       </div>
     </div>
