@@ -223,6 +223,10 @@ function ToolbarPlugin({
         <option value="Roboto">Roboto</option>
         <option value="Inter">Inter</option>
         <option value="Poppins">Poppins</option>
+        <option value="Geist Mono">Geist Mono</option>
+        <option value="Consolas">Consolas</option>
+        <option value="Courier New">Courier New</option>
+        <option value="monospace">monospace</option>
       </select>
 
       <div className={styles.toolbarDivider} />

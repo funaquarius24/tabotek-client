@@ -31,7 +31,7 @@ interface EditorProps {
 
 const STORAGE_KEY = 'editor_cache';
 
-const FONT_FAMILIES = ['Roboto', 'Inter', 'Poppins'];
+const FONT_FAMILIES = ['Roboto', 'Inter', 'Poppins', 'Geist Mono', 'Consolas', 'Courier New', 'monospace'];
 const FONT_SIZES = [10, 12, 13, 14, 15, 16, 18, 20, 22, 24];
 
 export default function Editor({ defaultValue: _defaultValue = '', onChange, onSave, showToc = true }: EditorProps) {
