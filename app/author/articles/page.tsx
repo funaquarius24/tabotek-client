@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useAuthorArticles, useDeleteArticle, useUpdateArticle } from '@/lib/hooks/useArticles';
 import { useToast } from '@/components/Toast';
+import ArticleTable from '@/components/ArticleTable';
+import ArticleFilterBar from '@/components/ArticleFilterBar';
 import type { ArticleResponse } from '@/lib/types';
 
 const PAGE_SIZE = 15;
@@ -25,6 +27,7 @@ export default function AuthorArticlesPage() {
   const { data, isLoading, error } = useAuthorArticles(params);
   const articles: ArticleResponse[] = data?.articles || [];
   const pagination = data?.pagination;
+  const counts = data?.counts as Record<string, number> | undefined;
 
   const deleteArticle = useDeleteArticle();
   const updateArticle = useUpdateArticle();
@@ -64,38 +67,18 @@ export default function AuthorArticlesPage() {
         <Link href="/publish" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">+ New Article</Link>
       </div>
 
-      <div className="flex flex-wrap gap-3 p-4 bg-white rounded-xl shadow-sm items-center">
-        {(['', 'draft', 'published', 'archived'] as const).map(s => (
-          <button
-            key={s}
-            onClick={() => { setStatusFilter(s); setPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-              statusFilter === s ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {s ? s.charAt(0).toUpperCase() + s.slice(1) : 'All'}
-          </button>
-        ))}
-        <input
-          type="text"
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search articles..."
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-56"
-        />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          <option value="publishedAt">Date</option>
-          <option value="title">Title</option>
-          <option value="status">Status</option>
-        </select>
-        <button
-          onClick={() => setSortOrder(o => o === '-1' ? '1' : '-1')}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100"
-          title="Toggle sort direction"
-        >
-          {sortOrder === '-1' ? '↓ Desc' : '↑ Asc'}
-        </button>
-      </div>
+      <ArticleFilterBar
+        statusFilter={statusFilter}
+        onStatusFilterChange={(s) => { setStatusFilter(s); setPage(1); }}
+        search={search}
+        onSearchChange={(s) => { setSearch(s); setPage(1); }}
+        counts={counts}
+        showSort
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortByChange={setSortBy}
+        onSortOrderChange={() => setSortOrder(o => o === '-1' ? '1' : '-1')}
+      />
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {isLoading ? (
@@ -125,71 +108,40 @@ export default function AuthorArticlesPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sorted.map(article => (
-                  <tr key={article._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{article.title}</div>
-                      <div className="text-sm text-gray-500">{article.slug}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        article.status === 'published' ? 'bg-green-100 text-green-800' :
-                        article.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>{article.status}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{article.views || 0}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {article.status !== 'published' && (
-                          <button
-                            onClick={() => handlePublish(article.slug)}
-                            className="px-3 py-1 bg-green-100 text-green-800 hover:bg-green-200 rounded text-sm font-medium"
-                          >
-                            Publish
-                          </button>
-                        )}
-                        <Link
-                          href={`/admin/articles/edit/${article._id}`}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded text-sm font-medium"
-                        >
-                          Edit
-                        </Link>
-                        <Link
-                          href={`/article/${article.slug}`}
-                          target="_blank"
-                          className="px-3 py-1 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded text-sm font-medium"
-                        >
-                          View
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(article.slug)}
-                          className="px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded text-sm font-medium"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ArticleTable
+            articles={sorted}
+            actions={(article) => (
+              <>
+                {article.status !== 'published' && (
+                  <button
+                    onClick={() => handlePublish(article.slug)}
+                    className="px-3 py-1 bg-green-100 text-green-800 hover:bg-green-200 rounded text-sm font-medium"
+                  >
+                    Publish
+                  </button>
+                )}
+                <Link
+                  href={`/admin/articles/edit/${article._id}`}
+                  className="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded text-sm font-medium"
+                >
+                  Edit
+                </Link>
+                <Link
+                  href={`/article/${article.slug}`}
+                  target="_blank"
+                  className="px-3 py-1 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded text-sm font-medium"
+                >
+                  View
+                </Link>
+                <button
+                  onClick={() => handleDelete(article.slug)}
+                  className="px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded text-sm font-medium"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          />
         )}
 
         {pagination && pagination.totalPages > 1 && (

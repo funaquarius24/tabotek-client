@@ -65,7 +65,7 @@ export async function getAuthorArticles(params?: {
   if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
 
   const query = searchParams.toString();
-  return fetchAPI<{ articles: ArticleResponse[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>(
+  return fetchAPI<{ articles: ArticleResponse[]; pagination: { total: number; page: number; limit: number; totalPages: number }; counts?: Record<string, number> }>(
     `/api/author/articles${query ? `?${query}` : ''}`
   );
 }

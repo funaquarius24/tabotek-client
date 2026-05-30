@@ -3,13 +3,16 @@
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ErrorPage from '@/components/ErrorPage';
+import DashboardSidebar from '@/components/DashboardSidebar';
+import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { user, isLoggedIn, isLoading, signOut } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
+  const pathname = usePathname();
 
   if (isLoading) {
     return (
@@ -43,112 +46,29 @@ export default function AdminLayout({
 
   const roleLabel = user.role === 'superuser' ? 'Superuser' : 'Administrator';
 
+  const navItems = [
+    { href: '/admin', label: 'Dashboard', icon: '📊' },
+    { href: '/admin/articles', label: 'Articles', icon: '📝' },
+    { href: '/admin/categories', label: 'Categories', icon: '📂' },
+    { href: '/admin/tags', label: 'Tags', icon: '🏷️' },
+    { href: '/admin/media', label: 'Media Library', icon: '🖼️' },
+    { href: '/admin/users', label: 'Users', icon: '👥' },
+    { href: '/admin/requests', label: 'Requests', icon: '📨' },
+    ...(user.role === 'superuser' ? [{ href: '/admin/backup', label: 'Backup Database', icon: '💾' as const }] : []),
+    { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Admin Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Welcome, {user.name}
-            </p>
-          </div>
+      <DashboardSidebar
+        title="Admin Dashboard"
+        userName={user.name}
+        navItems={navItems}
+        activePath={pathname}
+        onSignOut={signOut}
+      />
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">📊</span>
-              <span className="font-medium">Dashboard</span>
-            </Link>
-
-            <Link
-              href="/admin/articles"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">📝</span>
-              <span className="font-medium">Articles</span>
-            </Link>
-
-            <Link
-              href="/admin/categories"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">📂</span>
-              <span className="font-medium">Categories</span>
-            </Link>
-
-            <Link
-              href="/admin/tags"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">🏷️</span>
-              <span className="font-medium">Tags</span>
-            </Link>
-
-            <Link
-              href="/admin/media"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">🖼️</span>
-              <span className="font-medium">Media Library</span>
-            </Link>
-
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">👥</span>
-              <span className="font-medium">Users</span>
-            </Link>
-
-            <Link
-              href="/admin/requests"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">📨</span>
-              <span className="font-medium">Requests</span>
-            </Link>
-
-            {user.role === 'superuser' && (
-              <Link
-                href="/admin/backup"
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-              >
-                <span className="text-lg">💾</span>
-                <span className="font-medium">Backup Database</span>
-              </Link>
-            )}
-
-            <Link
-              href="/admin/settings"
-              className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">⚙️</span>
-              <span className="font-medium">Settings</span>
-            </Link>
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t">
-            <button
-              onClick={() => signOut()}
-              className="flex items-center gap-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors"
-            >
-              <span className="text-lg">🚪</span>
-              <span className="font-medium">Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
       <div className="pl-64">
-        {/* Top Bar */}
         <header className="sticky top-0 z-40 bg-white border-b shadow-sm">
           <div className="px-8 py-4">
             <div className="flex items-center justify-between">
@@ -164,7 +84,6 @@ export default function AdminLayout({
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="p-8">
           {children}
         </main>
