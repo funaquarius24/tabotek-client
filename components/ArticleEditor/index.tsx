@@ -262,7 +262,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
 
   const handleSettingsPublish = useCallback((attrs: Partial<ArticleAttributes>) => {
     handleSettingsChange(attrs);
-    saveOrPublish('published', attrs);
+    saveOrPublish('draft', attrs);
   }, [handleSettingsChange, saveOrPublish]);
 
   return (
