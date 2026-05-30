@@ -68,10 +68,10 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     coverImage: '',
   });
 
-  const [editorKey, setEditorKey] = useState(editId || 'new');
+  const [editorKey, setEditorKey] = useState('new');
 
   useEffect(() => {
-    if (existingArticle && editId && editId !== editorKey) {
+    if (existingArticle && editId) {
       setEditorKey(editId);
       setDraft({
         id: existingArticle._id,
@@ -90,7 +90,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
         coverImage: existingArticle.featuredImage || '',
       });
     }
-  }, [existingArticle, editId, editorKey]);
+  }, [existingArticle, editId]);
 
   useEffect(() => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -129,7 +129,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     setHasSaved(false);
   }, []);
 
-  const saveOrPublish = useCallback(async (status: 'draft' | 'published') => {
+  const saveOrPublish = useCallback(async (status: 'draft' | 'published', settingsAttrs?: Partial<ArticleAttributes>) => {
     if (saving) return;
 
     if (status === 'published' && !canPublish) {
@@ -138,11 +138,13 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     }
 
     try {
-      if (!draft.title.trim()) {
+      const effective = settingsAttrs ? { ...draft, ...settingsAttrs } : draft;
+
+      if (!effective.title.trim()) {
         addToast('Title is required', 'warning');
         return;
       }
-      if (!draft.content.trim()) {
+      if (!effective.content.trim()) {
         addToast('Content is required', 'warning');
         return;
       }
@@ -151,24 +153,24 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
 
       const authorId = (user as any)?._id ?? (user as any)?.id ?? '';
       const data = {
-        title: draft.title,
-        content: draft.content,
-        excerpt: draft.summary || draft.content.slice(0, 200),
+        title: effective.title,
+        content: effective.content,
+        excerpt: effective.summary || effective.content.slice(0, 200),
         status,
-        categoryId: draft.categoryId,
-        tags: draft.tags,
-        featuredImage: draft.coverImage,
+        categoryId: effective.categoryId,
+        tags: effective.tags,
+        featuredImage: effective.coverImage,
         authorId,
-        slug: draft.title
+        slug: effective.title
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, ''),
-        readTime: Math.max(1, Math.ceil(draft.content.split(/\s+/).length / 200)),
+        readTime: Math.max(1, Math.ceil(effective.content.split(/\s+/).length / 200)),
         publishedAt: status === 'published' ? new Date().toISOString() : '',
         seo: {
-          title: draft.title,
-          description: draft.summary || draft.content.slice(0, 160),
-          keywords: draft.tags,
+          title: effective.title,
+          description: effective.summary || effective.content.slice(0, 160),
+          keywords: effective.tags,
         },
       };
 
@@ -260,7 +262,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
 
   const handleSettingsPublish = useCallback((attrs: Partial<ArticleAttributes>) => {
     handleSettingsChange(attrs);
-    saveOrPublish('published');
+    saveOrPublish('published', attrs);
   }, [handleSettingsChange, saveOrPublish]);
 
   return (

@@ -3,96 +3,108 @@
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 import { ArticleResponse } from '@/lib/types';
+import { useDeleteArticle } from '@/lib/hooks/useArticles';
+import { useToast } from '@/components/Toast';
 
 interface AdminArticlesTableProps {
   articles: ArticleResponse[];
 }
 
-const columns: ColumnDef<ArticleResponse>[] = [
-  {
-    accessorKey: 'title',
-    header: 'Title',
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium text-gray-900">{row.original.title}</div>
-        <div className="text-sm text-gray-500">{row.original.slug}</div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.original.status;
-      let className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ';
-      if (status === 'published') {
-        className += 'bg-green-100 text-green-800';
-      } else if (status === 'draft') {
-        className += 'bg-yellow-100 text-yellow-800';
-      } else {
-        className += 'bg-gray-100 text-gray-800';
-      }
-      return <span className={className}>{status}</span>;
-    },
-  },
-  {
-    accessorKey: 'category',
-    header: 'Category',
-    cell: () => (
-      <span className="text-sm text-gray-500">Uncategorized</span>
-    ),
-  },
-  {
-    accessorKey: 'publishedAt',
-    header: 'Published',
-    cell: ({ row }) => (
-      <span className="text-sm text-gray-500">
-        {new Date(row.original.publishedAt).toLocaleDateString()}
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'views',
-    header: 'Views',
-    cell: ({ row }) => (
-      <span className="text-sm text-gray-500">{row.original.views || 0}</span>
-    ),
-  },
-  {
-    id: 'actions',
-    header: 'Actions',
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Link
-          href={`/admin/articles/edit/${row.original._id}`}
-          className="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded text-sm font-medium"
-        >
-          Edit
-        </Link>
-        <Link
-          href={`/article/${row.original.slug}`}
-          target="_blank"
-          className="px-3 py-1 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded text-sm font-medium"
-        >
-          View
-        </Link>
-        <button
-          className="px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded text-sm font-medium"
-          onClick={() => {
-            if (confirm('Are you sure you want to delete this article?')) {
-              // TODO: Implement delete mutation
-              console.log('Delete article', row.original._id);
-            }
-          }}
-        >
-          Delete
-        </button>
-      </div>
-    ),
-  },
-];
-
 export default function AdminArticlesTable({ articles }: AdminArticlesTableProps) {
+  const deleteArticle = useDeleteArticle();
+  const { addToast } = useToast();
+
+  const handleDelete = (slug: string) => {
+    if (!confirm('Are you sure you want to delete this article? This action cannot be undone.')) return;
+    deleteArticle.mutate(slug, {
+      onSuccess: () => {
+        addToast('Article deleted successfully', 'success');
+      },
+      onError: (err: any) => {
+        addToast(err?.message ?? 'Failed to delete article', 'error');
+      },
+    });
+  };
+
+  const columns: ColumnDef<ArticleResponse>[] = [
+    {
+      accessorKey: 'title',
+      header: 'Title',
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-gray-900">{row.original.title}</div>
+          <div className="text-sm text-gray-500">{row.original.slug}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = row.original.status;
+        let className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ';
+        if (status === 'published') {
+          className += 'bg-green-100 text-green-800';
+        } else if (status === 'draft') {
+          className += 'bg-yellow-100 text-yellow-800';
+        } else {
+          className += 'bg-gray-100 text-gray-800';
+        }
+        return <span className={className}>{status}</span>;
+      },
+    },
+    {
+      accessorKey: 'category',
+      header: 'Category',
+      cell: () => (
+        <span className="text-sm text-gray-500">Uncategorized</span>
+      ),
+    },
+    {
+      accessorKey: 'publishedAt',
+      header: 'Published',
+      cell: ({ row }) => (
+        <span className="text-sm text-gray-500">
+          {new Date(row.original.publishedAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'views',
+      header: 'Views',
+      cell: ({ row }) => (
+        <span className="text-sm text-gray-500">{row.original.views || 0}</span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/articles/edit/${row.original._id}`}
+            className="px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded text-sm font-medium"
+          >
+            Edit
+          </Link>
+          <Link
+            href={`/article/${row.original.slug}`}
+            target="_blank"
+            className="px-3 py-1 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded text-sm font-medium"
+          >
+            View
+          </Link>
+          <button
+            className="px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded text-sm font-medium"
+            onClick={() => handleDelete(row.original.slug)}
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   const table = useReactTable({
     data: articles,
     columns,
