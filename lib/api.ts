@@ -48,6 +48,28 @@ export async function getArticles(params?: {
   );
 }
 
+export async function getAuthorArticles(params?: {
+  limit?: number;
+  page?: number;
+  status?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.page) searchParams.set('page', params.page.toString());
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.search) searchParams.set('search', params.search);
+  if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+  if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+
+  const query = searchParams.toString();
+  return fetchAPI<{ articles: ArticleResponse[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>(
+    `/api/author/articles${query ? `?${query}` : ''}`
+  );
+}
+
 export async function getArticleBySlug(slug: string) {
   return fetchAPI<ArticleResponse>(`/api/articles/${slug}`);
 }

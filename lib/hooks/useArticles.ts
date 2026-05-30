@@ -10,6 +10,13 @@ export function useArticles(params?: any) {
   });
 }
 
+export function useAuthorArticles(params?: any) {
+  return useQuery({
+    queryKey: ['author-articles', params],
+    queryFn: () => api.getAuthorArticles(params),
+  });
+}
+
 export function useArticle(slug: string) {
   return useQuery({
     queryKey: queryKeys.articles.detail(slug),

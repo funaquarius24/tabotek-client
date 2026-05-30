@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useArticles, useDeleteArticle, useUpdateArticle } from '@/lib/hooks/useArticles';
+import { useAuthorArticles, useDeleteArticle, useUpdateArticle } from '@/lib/hooks/useArticles';
 import { useToast } from '@/components/Toast';
 import type { ArticleResponse } from '@/lib/types';
 
@@ -18,12 +18,11 @@ export default function AuthorArticlesPage() {
   const [sortBy, setSortBy] = useState<string>('publishedAt');
   const [sortOrder, setSortOrder] = useState<string>('-1');
 
-  const authorId = (user as any)?._id;
-  const params: any = { limit: PAGE_SIZE, page, authorId };
+  const params: any = { limit: PAGE_SIZE, page };
   if (statusFilter) params.status = statusFilter;
   if (search) params.search = search;
 
-  const { data, isLoading, error } = useArticles(params);
+  const { data, isLoading, error } = useAuthorArticles(params);
   const articles: ArticleResponse[] = data?.articles || [];
   const pagination = data?.pagination;
 
@@ -108,13 +107,22 @@ export default function AuthorArticlesPage() {
           <div className="text-center py-12">
             <div className="text-4xl mb-3">❌</div>
             <h3 className="text-lg font-semibold text-gray-700">Failed to load articles</h3>
+            <p className="text-gray-500 mt-2">{(error as Error)?.message || 'An unexpected error occurred.'}</p>
           </div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-3">📝</div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-1">No articles yet</h3>
-            <p className="text-gray-500 mb-5">Create your first article to get started.</p>
-            <Link href="/publish" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Write an Article</Link>
+            <div className="text-4xl mb-3">{search || statusFilter ? '🔍' : '📝'}</div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-1">
+              {search || statusFilter ? 'No articles found' : 'No articles yet'}
+            </h3>
+            <p className="text-gray-500 mb-5">
+              {search || statusFilter
+                ? 'Try adjusting your search or filter.'
+                : 'Create your first article to get started.'}
+            </p>
+            {!search && !statusFilter && (
+              <Link href="/publish" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">Write an Article</Link>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
