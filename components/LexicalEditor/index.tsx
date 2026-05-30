@@ -64,6 +64,7 @@ function ToolbarPlugin({
   const [isUnderline, setIsUnderline] = useState(false);
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [fontSize, setFontSize] = useState('16');
+  const [fontFamily, setFontFamily] = useState('Roboto');
 
   useEffect(() => {
     return editor.registerCommand(
@@ -83,6 +84,8 @@ function ToolbarPlugin({
         setIsStrikethrough(selection.hasFormat('strikethrough'));
         const currentSize = $getSelectionStyleValueForProperty(selection, 'font-size', '16');
         setFontSize(currentSize.replace('px', ''));
+        const currentFont = $getSelectionStyleValueForProperty(selection, 'font-family', 'Roboto');
+        setFontFamily(currentFont);
         return false;
       },
       1,
@@ -200,6 +203,26 @@ function ToolbarPlugin({
         <option value="20">20px</option>
         <option value="22">22px</option>
         <option value="24">24px</option>
+      </select>
+
+      <select
+        className={styles.toolbarSelect}
+        value={fontFamily}
+        onChange={(e) => {
+          const v = e.target.value;
+          setFontFamily(v);
+          editor.update(() => {
+            const sel = $getSelection();
+            if ($isRangeSelection(sel)) {
+              $patchStyleText(sel, { 'font-family': v });
+            }
+          });
+        }}
+        title="Font Family"
+      >
+        <option value="Roboto">Roboto</option>
+        <option value="Inter">Inter</option>
+        <option value="Poppins">Poppins</option>
       </select>
 
       <div className={styles.toolbarDivider} />

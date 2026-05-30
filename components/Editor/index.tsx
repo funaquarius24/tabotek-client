@@ -31,7 +31,7 @@ interface EditorProps {
 
 const STORAGE_KEY = 'editor_cache';
 
-const FONT_FAMILIES = ['Geist Mono', 'Consolas', 'Courier New', 'monospace'];
+const FONT_FAMILIES = ['Roboto', 'Inter', 'Poppins'];
 const FONT_SIZES = [10, 12, 13, 14, 15, 16, 18, 20, 22, 24];
 
 export default function Editor({ defaultValue: _defaultValue = '', onChange, onSave, showToc = true }: EditorProps) {
@@ -47,7 +47,7 @@ export default function Editor({ defaultValue: _defaultValue = '', onChange, onS
   const [html, setHtml] = useState('');
   const [toc, setToc] = useState<TocItem[]>([]);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [fontFamily, setFontFamily] = useState('Geist Mono');
+  const [fontFamily, setFontFamily] = useState('Roboto');
   const [fontSize, setFontSize] = useState(14);
   const [isDragOver, setIsDragOver] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
