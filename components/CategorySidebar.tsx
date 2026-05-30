@@ -16,9 +16,10 @@ const CategorySidebar = ({ categorySlug, activeTab }: CategorySidebarProps) => {
     { label: 'Questions', icon: '❓', href: '#questions' },
     { label: 'Chat', icon: '💬', href: '#chat' },
     { label: 'Tags', icon: '🏷️', href: '#tags' },
+    ...(user && ['author', 'editor', 'admin', 'superuser'].includes(user.role)
+      ? [{ label: 'Dashboard', icon: '📊', href: '/author/articles' }]
+      : []),
   ];
-
-  const canAccessDashboard = user && (user.role === 'admin' || user.role === 'superuser');
 
   return (
     <nav className="sticky top-8">
@@ -38,15 +39,6 @@ const CategorySidebar = ({ categorySlug, activeTab }: CategorySidebarProps) => {
             <span>{item.label}</span>
           </Link>
         ))}
-        {canAccessDashboard && (
-          <Link
-            href="/admin"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-          >
-            <span>📊</span>
-            <span>Dashboard</span>
-          </Link>
-        )}
       </div>
       
       <div className="mt-8 pt-6 border-t border-gray-200">
