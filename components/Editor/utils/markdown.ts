@@ -25,6 +25,12 @@ export interface TocItem {
   text: string;
 }
 
+export interface EditorChange {
+  value: string;
+  html: string;
+  toc: TocItem[];
+}
+
 export function makeHtml(markdown: string): string {
   if (!markdown) return '';
   return converter.makeHtml(markdown);

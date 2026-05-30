@@ -17,10 +17,9 @@ import { LinkNode, AutoLinkNode, $toggleLink } from '@lexical/link';
 import { $getSelection, $isRangeSelection, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType, $patchStyleText, $getSelectionStyleValueForProperty } from '@lexical/selection';
-import { makeHtml, makeToc, type TocItem } from '@/components/Editor/utils/markdown';
+import { makeHtml, makeToc, type TocItem, type EditorChange } from '@/components/Editor/utils/markdown';
 import { fileProvider } from '@/lib/providers/file';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import type { EditorChange } from '@/components/Editor';
 import styles from './LexicalEditor.module.css';
 
 const STORAGE_KEY = 'lexical_editor_cache';

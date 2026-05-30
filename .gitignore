@@ -42,5 +42,3 @@ next-env.d.ts
 
 .kilo
 
-# Monaco Editor local copy (generated from node_modules)
-/public/monaco-editor
