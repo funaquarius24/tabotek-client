@@ -84,7 +84,7 @@ function ToolbarPlugin({
         const currentSize = $getSelectionStyleValueForProperty(selection, 'font-size', '16');
         setFontSize(currentSize.replace('px', ''));
         const currentFont = $getSelectionStyleValueForProperty(selection, 'font-family', 'Roboto');
-        setFontFamily(currentFont);
+        setFontFamily(currentFont.replace(/['"]/g, '').split(',')[0].trim());
         return false;
       },
       1,
@@ -111,8 +111,12 @@ function ToolbarPlugin({
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-        $setBlocksType(selection, () => $createHeadingNode(tag));
+        const anchorNode = selection.anchor.getNode();
+        const topLevelElement = anchorNode.getTopLevelElement();
+        if (topLevelElement) {
+          const tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+          topLevelElement.replace($createHeadingNode(tag), true);
+        }
       }
     });
   }, [editor]);
