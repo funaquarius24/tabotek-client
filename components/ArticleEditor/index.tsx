@@ -116,7 +116,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     }
   }, []);
 
-  const [hasSaved, setHasSaved] = useState(true);
+  const [hasSaved, setHasSaved] = useState(!!editId);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showToc, setShowToc] = useState(true);
@@ -190,9 +190,6 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
         'success'
       );
 
-      if (!draft.id && newId) {
-        router.replace(`/admin/article/editor?id=${newId}`);
-      }
     } catch (err: any) {
       addToast(err?.message ?? 'Failed to save article', 'error');
     } finally {

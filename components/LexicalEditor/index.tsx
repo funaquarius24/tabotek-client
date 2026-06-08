@@ -403,7 +403,7 @@ function MarkdownEmitter({
 }
 
 export default function LexicalEditor({
-  defaultValue = '',
+  defaultValue: defaultValueProp = '',
   onChange,
   onSave,
   showToc = true,
@@ -413,6 +413,14 @@ export default function LexicalEditor({
   onSave?: (value: string) => void;
   showToc?: boolean;
 }) {
+  const [defaultValue] = useState(() => {
+    if (defaultValueProp) return defaultValueProp;
+    try {
+      return localStorage.getItem(STORAGE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
   const [markdown, setMarkdown] = useState(defaultValue);
   const [html, setHtml] = useState('');
   const [toc, setToc] = useState<TocItem[]>([]);
