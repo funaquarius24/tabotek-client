@@ -141,11 +141,15 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
       const effective = settingsAttrs ? { ...draft, ...settingsAttrs } : draft;
 
       if (!effective.title.trim()) {
-        addToast('Title is required', 'warning');
+        addToast('Title required', 'warning');
         return;
       }
       if (status === 'published' && !effective.content.trim()) {
-        addToast('Content is required to publish', 'warning');
+        addToast('Content required', 'warning');
+        return;
+      }
+      if (status === 'published' && !effective.categoryId) {
+        addToast('Category required to publish', 'warning');
         return;
       }
 
@@ -259,7 +263,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
 
   const handleSettingsPublish = useCallback((attrs: Partial<ArticleAttributes>) => {
     handleSettingsChange(attrs);
-    saveOrPublish('draft', attrs);
+    saveOrPublish('published', attrs);
   }, [handleSettingsChange, saveOrPublish]);
 
   return (
