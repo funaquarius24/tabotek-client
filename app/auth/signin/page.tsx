@@ -140,33 +140,6 @@ function SignInForm() {
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo credentials</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-500">Email / Username</p>
-                <p className="text-sm font-medium text-gray-900">admin@techhub.example.com</p>
-                <p className="text-xs text-gray-400">or "Admin"</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-500">Password</p>
-                <p className="text-sm font-medium text-gray-900">password123</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-500">Roles</p>
-                <p className="text-sm font-medium text-gray-900">superuser / admin / editor / author / user</p>
-              </div>
-            </div>
-          </div>
-
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
