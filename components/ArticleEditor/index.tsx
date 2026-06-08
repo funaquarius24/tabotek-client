@@ -144,8 +144,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
         addToast('Title is required', 'warning');
         return;
       }
-      if (!effective.content.trim()) {
-        addToast('Content is required', 'warning');
+      if (status === 'published' && !effective.content.trim()) {
+        addToast('Content is required to publish', 'warning');
         return;
       }
 
@@ -206,7 +206,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (hasUnsavedRef.current && draftRef.current.title.trim() && draftRef.current.content.trim()) {
+      if (hasUnsavedRef.current && draftRef.current.title.trim()) {
         saveOrPublishRef.current('draft');
       }
     }, AUTOSAVE_INTERVAL);
