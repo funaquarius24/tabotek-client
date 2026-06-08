@@ -88,6 +88,7 @@ export default function AdminArticlesPage() {
             <ArticleTable
               articles={articles}
               showCategory
+              showAuthor
               actions={(article) => (
                 <>
                   <Link
