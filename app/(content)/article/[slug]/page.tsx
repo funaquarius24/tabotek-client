@@ -7,6 +7,7 @@ import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import TableOfContentsClient from '@/components/TableOfContentsClient';
 import MoreStories from '@/components/MoreStories';
 import Comments from '@/components/Comments';
+import { makeHtml } from '@/components/Editor/utils/markdown';
 
 function getStoredVote(slug: string): 'like' | 'dislike' | null {
   if (typeof window === 'undefined') return null;
@@ -139,12 +140,15 @@ export default function ArticlePage() {
     return items;
   }
 
-  const rawContent = article.content || '';
-  const contentHtml = rawContent.replace(
-    /<h([2-3])>(.*?)<\/h\1>/g,
-    (_match: string, level: string, text: string) => {
-      const id = text.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-      return `<h${level} id="${id}">${text}</h${level}>`;
+  const contentHtml = makeHtml(article.content || '').replace(
+    /<h([2-3])([^>]*)>(.*?)<\/h\1>/gi,
+    (_match: string, level: string, attrs: string, text: string) => {
+      const cleanText = text.replace(/<[^>]+>/g, '').trim();
+      const id = cleanText.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+      const existingId = attrs.match(/id\s*=\s*["']([^"']+)["']/);
+      return existingId
+        ? `<h${level}${attrs}>${text}</h${level}>`
+        : `<h${level} id="${id}"${attrs}>${text}</h${level}>`;
     }
   );
   const tableOfContents = extractTableOfContents(contentHtml);
