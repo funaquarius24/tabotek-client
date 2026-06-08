@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ArticleEditor from '@/components/ArticleEditor';
 import styles from './page.module.css';
@@ -27,9 +28,9 @@ export default function PublishPage() {
           <p className={styles.blockedText}>
             You need to be signed in to compose and publish articles.
           </p>
-          <a href="/login" className={styles.accountLink}>
+          <Link href="/auth/signin" className={styles.accountLink}>
             Sign In
-          </a>
+          </Link>
         </div>
       </div>
     );
