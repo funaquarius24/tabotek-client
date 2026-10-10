@@ -58,6 +58,7 @@ export interface ArticleResponse {
   excerpt: string;
   categoryId: string;
   authorId: string;
+  authorName?: string;
   author?: { _id: string; name: string } | null;
   featuredImage: string;
   tags: string[];
