@@ -15,6 +15,7 @@ function ArticleCard({ article }: { article: ArticleResponse }) {
             src={article.featuredImage}
             alt={article.title}
             fill
+            sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) calc(50vw - 1.5rem), calc((min(100vw, 72rem) - 5rem) / 3)"
             className="object-cover"
           />
         </div>

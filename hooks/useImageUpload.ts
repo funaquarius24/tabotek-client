@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
+import { fileProvider } from '@/lib/providers/file';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -60,87 +61,27 @@ export function useImageUpload(): UseImageUploadReturn {
     }
 
     const objectUrl = URL.createObjectURL(file);
-    setUploadState(s => ({ ...s, previewUrl: objectUrl }));
-
-    setUploadState(s => ({ ...s, status: 'requesting_url', progress: 10 }));
-
-    let uploadUrl: string;
-    let publicUrl: string;
-    let imageId: string;
-    let imageExt: string;
+    setUploadState(s => ({ ...s, previewUrl: objectUrl, status: 'requesting_url', progress: 15 }));
 
     try {
-      const ticketRes = await fetch('/api/oss/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, contentType: file.type }),
-      });
+      setUploadState(s => ({ ...s, status: 'uploading', progress: 60 }));
 
-      if (!ticketRes.ok) {
-        const errData = await ticketRes.json().catch(() => ({ error: 'Failed to get upload URL' }));
-        throw new Error(errData.error || `HTTP ${ticketRes.status}`);
-      }
+      const result = await fileProvider.uploadFile(file, 0);
 
-      const ticket = await ticketRes.json();
-      uploadUrl = ticket.uploadUrl;
-      publicUrl = ticket.publicUrl;
-      imageId = ticket.imageId;
-      imageExt = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '';
-
-      setUploadState(s => ({ ...s, status: 'uploading', progress: 20 }));
-    } catch (err: any) {
-      URL.revokeObjectURL(objectUrl);
-      setUploadState(s => ({ ...s, status: 'error', error: err.message }));
-      return null;
-    }
-
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const pct = 20 + Math.round((e.loaded / e.total) * 70);
-            setUploadState(s => ({ ...s, progress: pct }));
-          }
-        });
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error(`Upload failed (HTTP ${xhr.status})`));
-          }
-        });
-
-        xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
-      });
-
-      fetch('/api/oss/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageId }),
-      }).catch(() => {});
-
-      const proxyUrl = `/api/oss/image-proxy?path=uploads/${imageId}${imageExt}`;
-
-      setUploadState(s => ({
-        ...s,
+      setUploadState({
         status: 'success',
         progress: 100,
-        resultUrl: proxyUrl,
-      }));
+        previewUrl: null,
+        error: null,
+        resultUrl: result.url,
+      });
 
-      return proxyUrl;
+      return result.url;
     } catch (err: any) {
-      URL.revokeObjectURL(objectUrl);
-      setUploadState(s => ({ ...s, status: 'error', error: err.message }));
+      setUploadState(s => ({ ...s, status: 'error', error: err.message ?? 'Upload failed' }));
       return null;
+    } finally {
+      URL.revokeObjectURL(objectUrl);
     }
   }, []);
 

@@ -278,3 +278,20 @@ export async function getAdminStats() {
     totalUsers: number;
   }>('/api/admin/stats');
 }
+
+// Storage (admin)
+export async function getStorageStatus() {
+  return fetchAPI<{
+    storageBackend: 'database' | 'oss';
+    ossConfigured: boolean;
+    databaseObjectCount: number;
+    ossObjectCount: number;
+    localObjectCount: number;
+  }>('/api/admin/storage/status');
+}
+
+export async function migrateStorageToOss() {
+  return fetchAPI<{ moved: number; failed: string[] }>('/api/admin/storage/migrate-to-oss', {
+    method: 'POST',
+  });
+}

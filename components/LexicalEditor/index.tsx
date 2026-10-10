@@ -14,7 +14,8 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode, $toggleLink } from '@lexical/link';
-import { $getSelection, $isRangeSelection, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
+import { $getSelection, $isRangeSelection, $getRoot, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
+import type { LexicalEditor as LexicalEditorType } from 'lexical';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType, $patchStyleText, $getSelectionStyleValueForProperty } from '@lexical/selection';
 import { makeHtml, makeToc, type TocItem, type EditorChange } from '@/components/Editor/utils/markdown';
@@ -406,6 +407,18 @@ function MarkdownEmitter({
   return <OnChangePlugin onChange={handleChange} />;
 }
 
+function LexicalEditorRef({
+  editorRef,
+}: {
+  editorRef: React.MutableRefObject<LexicalEditorType | null>;
+}) {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+  return null;
+}
+
 export default function LexicalEditor({
   defaultValue: defaultValueProp = '',
   onChange,
@@ -433,6 +446,7 @@ export default function LexicalEditor({
   const dragCounterRef = useRef(0);
   const emitRef = useRef(onChange);
   emitRef.current = onChange;
+  const lexicalEditorRef = useRef<LexicalEditorType | null>(null);
   const { uploadState, uploadFile, reset: resetUpload } = useImageUpload();
 
   useEffect(() => {
@@ -446,6 +460,26 @@ export default function LexicalEditor({
     const h = makeHtml(md);
     const t = makeToc(h);
     emitRef.current?.({ value: md, html: h, toc: t });
+  }, []);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const insertIntoEditor = useCallback((text: string) => {
+    const editor = lexicalEditorRef.current;
+    if (!editor) return;
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        selection.insertRawText(text);
+      } else {
+        $getRoot().selectEnd();
+        const newSel = $getSelection();
+        if ($isRangeSelection(newSel)) {
+          newSel.insertRawText(text);
+        }
+      }
+    });
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -493,12 +527,9 @@ export default function LexicalEditor({
     if (!imageFile) return;
     const url = await uploadFile(imageFile);
     if (url) {
-      setMarkdown((prev) => `${prev}\n![${imageFile.name}](${url})\n`);
+      insertIntoEditor(`\n![${imageFile.name}](${url})\n`);
     }
-  }, [uploadFile]);
-
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  }, [uploadFile, insertIntoEditor]);
 
   const handleImageUploadClick = useCallback(() => {
     imageInputRef.current?.click();
@@ -513,24 +544,24 @@ export default function LexicalEditor({
     if (!file) return;
     const url = await uploadFile(file);
     if (url) {
-      setMarkdown((prev) => `${prev}\n![${file.name}](${url})\n`);
+      insertIntoEditor(`\n![${file.name}](${url})\n`);
     }
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
     }
-  }, [uploadFile]);
+  }, [uploadFile, insertIntoEditor]);
 
   const handleVideoFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const result = await fileProvider.uploadFile(file, 0);
-      setMarkdown((prev) => `${prev}\n<video src="${result.url}" controls></video>\n`);
+      insertIntoEditor(`\n<video src="${result.url}" controls></video>\n`);
     } catch {}
     if (videoInputRef.current) {
       videoInputRef.current.value = '';
     }
-  }, []);
+  }, [insertIntoEditor]);
 
   const isUploading = uploadState.status === 'validating' || uploadState.status === 'requesting_url' || uploadState.status === 'uploading';
 
@@ -569,6 +600,7 @@ export default function LexicalEditor({
 
       <LexicalComposer initialConfig={initialConfig}>
         <MarkdownInitializer text={defaultValue} />
+        <LexicalEditorRef editorRef={lexicalEditorRef} />
         <ToolbarPlugin
           onImageUpload={handleImageUploadClick}
           onVideoUpload={handleVideoUploadClick}

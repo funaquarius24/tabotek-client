@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { getStorageStatus, migrateStorageToOss } from '@/lib/api';
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -23,6 +24,16 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState<any[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+
+  const [storageStatus, setStorageStatus] = useState<{
+    storageBackend: 'database' | 'oss';
+    ossConfigured: boolean;
+    databaseObjectCount: number;
+    ossObjectCount: number;
+    localObjectCount: number;
+  } | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<{ moved: number; failed: string[] } | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
@@ -58,6 +69,27 @@ export default function AdminDashboard() {
     fetchActivity();
   }, []);
 
+  useEffect(() => {
+    getStorageStatus()
+      .then(setStorageStatus)
+      .catch(() => {});
+  }, []);
+
+  const handleMigrateToOss = async () => {
+    setMigrating(true);
+    setMigrationResult(null);
+    try {
+      const result = await migrateStorageToOss();
+      setMigrationResult(result);
+      setStorageStatus(prev => prev ? { ...prev, databaseObjectCount: Math.max(0, prev.databaseObjectCount - result.moved) } : prev);
+    } catch (error: any) {
+      setMigrationResult({ moved: 0, failed: [] });
+      console.error('Migration failed:', error);
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   if (authLoading || loading) {
     return <div>Loading...</div>;
   }
@@ -80,6 +112,37 @@ export default function AdminDashboard() {
           Welcome to your content management dashboard. Here's what's happening with your site.
         </p>
       </div>
+
+      {/* Storage migration reminder */}
+      {storageStatus && storageStatus.ossConfigured && storageStatus.databaseObjectCount > 0 && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl shadow-sm p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">☁️</span>
+              <div>
+                <h2 className="font-semibold text-amber-900">OSS is available — move database objects</h2>
+                <p className="text-sm text-amber-800 mt-1">
+                  {storageStatus.databaseObjectCount} object{storageStatus.databaseObjectCount === 1 ? '' : 's'} stored in the database can now be moved to Alibaba Cloud OSS.
+                  Current storage backend: <span className="font-medium">{storageStatus.storageBackend === 'oss' ? 'OSS' : 'Database'}</span>.
+                </p>
+                {migrationResult && migrationResult.failed.length === 0 && migrationResult.moved > 0 && (
+                  <p className="text-sm text-green-700 mt-2">Moved {migrationResult.moved} object{migrationResult.moved === 1 ? '' : 's'} to OSS.</p>
+                )}
+                {migrationResult && migrationResult.failed.length > 0 && (
+                  <p className="text-sm text-red-700 mt-2">{migrationResult.failed.length} object{migrationResult.failed.length === 1 ? '' : 's'} failed to move.</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleMigrateToOss}
+              disabled={migrating}
+              className={`px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors ${migrating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {migrating ? 'Moving...' : 'Move to OSS'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">

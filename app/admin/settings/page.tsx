@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getSiteSettings, saveSiteSettings } from '@/lib/api';
+import { getSiteSettings, saveSiteSettings, getStorageStatus, migrateStorageToOss } from '@/lib/api';
 
 export default function AdminSettingsPage() {
   const { userSettings, updateSettings } = useAuth();
@@ -11,6 +11,16 @@ export default function AdminSettingsPage() {
   const [userForm, setUserForm] = useState<Record<string, string | boolean | number>>({});
   const [savingSite, setSavingSite] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
+
+  const [storageStatus, setStorageStatus] = useState<{
+    storageBackend: 'database' | 'oss';
+    ossConfigured: boolean;
+    databaseObjectCount: number;
+    ossObjectCount: number;
+    localObjectCount: number;
+  } | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrationMsg, setMigrationMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getSiteSettings()
@@ -35,6 +45,12 @@ export default function AdminSettingsPage() {
     }
     setUserForm(form);
   }, [userSettings]);
+
+  useEffect(() => {
+    getStorageStatus()
+      .then(setStorageStatus)
+      .catch(() => {});
+  }, []);
 
   const setSiteField = useCallback((key: string, value: string | boolean) => {
     setSiteForm(prev => ({ ...prev, [key]: value }));
@@ -62,6 +78,20 @@ export default function AdminSettingsPage() {
     }
   }, [userForm, updateSettings]);
 
+  const handleMigrateToOss = useCallback(async () => {
+    setMigrating(true);
+    setMigrationMsg(null);
+    try {
+      const result = await migrateStorageToOss();
+      setMigrationMsg(`Moved ${result.moved} object${result.moved === 1 ? '' : 's'} to OSS${result.failed.length ? ` (${result.failed.length} failed)` : ''}.`);
+      setStorageStatus(prev => prev ? { ...prev, databaseObjectCount: Math.max(0, prev.databaseObjectCount - result.moved) } : prev);
+    } catch (err: any) {
+      setMigrationMsg(err.message ?? 'Migration failed');
+    } finally {
+      setMigrating(false);
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -77,6 +107,9 @@ export default function AdminSettingsPage() {
             <nav className="space-y-1 p-4">
               <a href="#general" className="block px-4 py-3 bg-blue-50 text-blue-700 font-medium rounded-lg">
                 General
+              </a>
+              <a href="#storage" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
+                Storage
               </a>
               <a href="#appearance" className="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
                 Appearance
@@ -175,6 +208,68 @@ export default function AdminSettingsPage() {
                 disabled={savingSite}
               >
                 {savingSite ? 'Saving...' : 'Save Site Settings'}
+              </button>
+            </div>
+          </div>
+
+          {/* Storage Settings - Site-wide */}
+          <div id="storage" className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Storage</h2>
+              <span className="px-2.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">Site-wide</span>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Object Storage Backend
+                </label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={(siteForm.storageBackend as string) || 'database'}
+                  onChange={e => setSiteField('storageBackend', e.target.value)}
+                >
+                  <option value="database">Database (MongoDB)</option>
+                  <option value="oss" disabled={!storageStatus?.ossConfigured}>Alibaba Cloud OSS</option>
+                </select>
+                <p className="text-sm text-gray-500 mt-2">
+                  New images and videos are stored in the selected backend. OSS requires the OSS_* environment variables to be configured.
+                </p>
+              </div>
+
+              {storageStatus && (
+                <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4 space-y-1">
+                  <div>Current backend: <span className="font-medium">{storageStatus.storageBackend === 'oss' ? 'OSS' : 'Database'}</span></div>
+                  <div>OSS configured: <span className="font-medium">{storageStatus.ossConfigured ? 'Yes' : 'No'}</span></div>
+                  <div>Objects in database: <span className="font-medium">{storageStatus.databaseObjectCount}</span></div>
+                  <div>Objects in OSS: <span className="font-medium">{storageStatus.ossObjectCount}</span></div>
+                </div>
+              )}
+
+              {storageStatus?.ossConfigured && storageStatus.databaseObjectCount > 0 && (
+                <div className="flex items-start justify-between gap-4 bg-amber-50 border border-amber-300 rounded-lg p-4">
+                  <p className="text-sm text-amber-800">
+                    {storageStatus.databaseObjectCount} object{storageStatus.databaseObjectCount === 1 ? '' : 's'} can be moved to OSS.
+                  </p>
+                  <button
+                    onClick={handleMigrateToOss}
+                    disabled={migrating}
+                    className={`px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors ${migrating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {migrating ? 'Moving...' : 'Move to OSS'}
+                  </button>
+                </div>
+              )}
+              {migrationMsg && <p className="text-sm text-gray-700">{migrationMsg}</p>}
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <button
+                className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors ${savingSite ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleSaveSite}
+                disabled={savingSite}
+              >
+                {savingSite ? 'Saving...' : 'Save Storage Settings'}
               </button>
             </div>
           </div>

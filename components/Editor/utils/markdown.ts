@@ -33,6 +33,13 @@ export interface EditorChange {
 
 export function makeHtml(markdown: string): string {
   if (!markdown) return '';
+
+  // Articles may be authored as HTML instead of Markdown. Markdown treats
+  // indented HTML blocks as code, so preserve recognized block markup first.
+  if (/<(?:h[1-6]|p|ul|ol|li|blockquote|pre|table|section|article)\b/i.test(markdown)) {
+    return markdown.trim();
+  }
+
   return converter.makeHtml(markdown);
 }
 
