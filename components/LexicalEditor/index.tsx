@@ -9,11 +9,13 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-import { $convertFromMarkdownString, $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
+import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode, $toggleLink } from '@lexical/link';
+import { TableNode, TableRowNode, TableCellNode } from '@lexical/table';
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import { $getSelection, $isRangeSelection, $getRoot, $createParagraphNode, UNDO_COMMAND, REDO_COMMAND, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical';
 import type { LexicalEditor as LexicalEditorType } from 'lexical';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
@@ -21,9 +23,13 @@ import { $setBlocksType, $patchStyleText, $getSelectionStyleValueForProperty } f
 import { makeHtml, makeToc, type TocItem, type EditorChange } from '@/components/Editor/utils/markdown';
 import { fileProvider } from '@/lib/providers/file';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { EDITOR_TRANSFORMERS } from './transformers';
+import { $createImageNode, ImageNode } from './nodes/ImageNode';
 import styles from './LexicalEditor.module.css';
 
 const STORAGE_KEY = 'lexical_editor_cache';
+
+type EditorMode = 'rich' | 'markdown';
 
 const EDITOR_NODES = [
   HeadingNode,
@@ -34,19 +40,22 @@ const EDITOR_NODES = [
   CodeHighlightNode,
   LinkNode,
   AutoLinkNode,
+  TableNode,
+  TableRowNode,
+  TableCellNode,
+  HorizontalRuleNode,
+  ImageNode,
 ];
 
-function MarkdownInitializer({ text }: { text: string }) {
+function MarkdownLoader({ text, version }: { text: string; version: number }) {
   const [editor] = useLexicalComposerContext();
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (!text || initialized.current) return;
-    initialized.current = true;
     editor.update(() => {
-      $convertFromMarkdownString(text, TRANSFORMERS);
+      $convertFromMarkdownString(text, EDITOR_TRANSFORMERS);
     });
-  }, [editor, text]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, version]);
 
   return null;
 }
@@ -54,9 +63,13 @@ function MarkdownInitializer({ text }: { text: string }) {
 function ToolbarPlugin({
   onImageUpload,
   onVideoUpload,
+  mode,
+  onToggleMode,
 }: {
   onImageUpload: () => void;
   onVideoUpload: () => void;
+  mode: EditorMode;
+  onToggleMode: () => void;
 }) {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
@@ -365,6 +378,16 @@ function ToolbarPlugin({
       >
         ↪
       </button>
+
+      <div className={styles.toolbarDivider} />
+
+      <button
+        className={`${styles.toolbarBtn} ${mode === 'markdown' ? styles.toolbarBtnActive : ''}`}
+        onClick={onToggleMode}
+        title={mode === 'rich' ? 'Switch to Markdown source' : 'Switch to rich text'}
+      >
+        {mode === 'rich' ? 'MD' : 'Rich'}
+      </button>
     </div>
   );
 }
@@ -379,7 +402,7 @@ function EditorContentSurface() {
         ErrorBoundary={LexicalErrorBoundary}
       />
       <HistoryPlugin />
-      <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+      <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
     </div>
   );
 }
@@ -396,7 +419,7 @@ function MarkdownEmitter({
 
   const handleChange = useCallback(() => {
     editor.read(() => {
-      const markdown = $convertToMarkdownString(TRANSFORMERS);
+      const markdown = $convertToMarkdownString(EDITOR_TRANSFORMERS);
       if (markdown !== lastEmittedRef.current) {
         lastEmittedRef.current = markdown;
         onChangeRef.current(markdown);
@@ -442,6 +465,8 @@ export default function LexicalEditor({
   const [html, setHtml] = useState('');
   const [toc, setToc] = useState<TocItem[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [mode, setMode] = useState<EditorMode>('rich');
+  const [loadVersion, setLoadVersion] = useState(0);
   const previewRef = useRef<HTMLDivElement>(null);
   const dragCounterRef = useRef(0);
   const emitRef = useRef(onChange);
@@ -454,6 +479,13 @@ export default function LexicalEditor({
     setHtml(h);
     setToc(makeToc(h));
   }, [markdown]);
+
+  const toggleMode = useCallback(() => {
+    if (mode === 'markdown') {
+      setLoadVersion((v) => v + 1);
+    }
+    setMode((m) => (m === 'rich' ? 'markdown' : 'rich'));
+  }, [mode]);
 
   const handleMarkdownChange = useCallback((md: string) => {
     setMarkdown(md);
@@ -479,6 +511,23 @@ export default function LexicalEditor({
           newSel.insertRawText(text);
         }
       }
+    });
+  }, []);
+
+  const insertImageNode = useCallback((src: string, altText: string) => {
+    const editor = lexicalEditorRef.current;
+    if (!editor) return;
+    editor.update(() => {
+      const imageNode = $createImageNode(src, altText);
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const topLevel = selection.anchor.getNode().getTopLevelElement();
+        if (topLevel) {
+          topLevel.insertAfter(imageNode);
+          return;
+        }
+      }
+      $getRoot().append(imageNode);
     });
   }, []);
 
@@ -527,9 +576,9 @@ export default function LexicalEditor({
     if (!imageFile) return;
     const url = await uploadFile(imageFile);
     if (url) {
-      insertIntoEditor(`\n![${imageFile.name}](${url})\n`);
+      insertImageNode(url, imageFile.name);
     }
-  }, [uploadFile, insertIntoEditor]);
+  }, [uploadFile, insertImageNode]);
 
   const handleImageUploadClick = useCallback(() => {
     imageInputRef.current?.click();
@@ -544,12 +593,12 @@ export default function LexicalEditor({
     if (!file) return;
     const url = await uploadFile(file);
     if (url) {
-      insertIntoEditor(`\n![${file.name}](${url})\n`);
+      insertImageNode(url, file.name);
     }
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
     }
-  }, [uploadFile, insertIntoEditor]);
+  }, [uploadFile, insertImageNode]);
 
   const handleVideoFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -599,16 +648,28 @@ export default function LexicalEditor({
       />
 
       <LexicalComposer initialConfig={initialConfig}>
-        <MarkdownInitializer text={defaultValue} />
+        <MarkdownLoader text={markdown} version={loadVersion} />
         <LexicalEditorRef editorRef={lexicalEditorRef} />
         <ToolbarPlugin
           onImageUpload={handleImageUploadClick}
           onVideoUpload={handleVideoUploadClick}
+          mode={mode}
+          onToggleMode={toggleMode}
         />
         <MarkdownEmitter onChange={handleMarkdownChange} />
         <div className={styles.panes}>
           <div className={styles.editorPane}>
-            <EditorContentSurface />
+            {mode === 'rich' ? (
+              <EditorContentSurface />
+            ) : (
+              <textarea
+                className={styles.markdownInput}
+                value={markdown}
+                onChange={(e) => handleMarkdownChange(e.target.value)}
+                placeholder="Write markdown here..."
+                spellCheck={false}
+              />
+            )}
           </div>
         <div
           className={styles.previewPane}
