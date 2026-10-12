@@ -4,6 +4,7 @@ import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArticleResponse } from '@/lib/types';
+import { useCategories } from '@/hooks/useCategories';
 
 interface ArticleTableProps {
   articles: ArticleResponse[];
@@ -14,6 +15,9 @@ interface ArticleTableProps {
 }
 
 export default function ArticleTable({ articles, showCategory, showAuthor, showCreated, actions }: ArticleTableProps) {
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData?.categories ?? [];
+
   const columns: ColumnDef<ArticleResponse>[] = [
     {
       accessorKey: 'title',
@@ -46,7 +50,14 @@ export default function ArticleTable({ articles, showCategory, showAuthor, showC
           {
             accessorKey: 'category' as const,
             header: 'Category',
-            cell: () => <span className="text-sm text-gray-500">Uncategorized</span>,
+            cell: ({ row }) => {
+              const category = categories.find((item) => item._id === row.original.categoryId);
+              return (
+                <span className="text-sm text-gray-500">
+                  {category?.name || 'Uncategorized'}
+                </span>
+              );
+            },
           } as ColumnDef<ArticleResponse>,
         ]
       : []),

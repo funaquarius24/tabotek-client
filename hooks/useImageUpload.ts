@@ -40,6 +40,11 @@ export function useImageUpload(): UseImageUploadReturn {
   }, []);
 
   const uploadFile = useCallback(async (file: File): Promise<string | null> => {
+    console.log('[useImageUpload] start', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
     setUploadState({
       status: 'validating',
       progress: 0,
@@ -50,12 +55,14 @@ export function useImageUpload(): UseImageUploadReturn {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       const err = `Invalid file type. Allowed: JPEG, PNG, WebP. Got: ${file.type}`;
+      console.log('[useImageUpload] rejected file type', { type: file.type, err });
       setUploadState(s => ({ ...s, status: 'error', error: err }));
       return null;
     }
 
     if (file.size > MAX_SIZE) {
       const err = `File too large (max 5MB). Got: ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+      console.log('[useImageUpload] rejected file size', { size: file.size, err });
       setUploadState(s => ({ ...s, status: 'error', error: err }));
       return null;
     }
@@ -67,6 +74,7 @@ export function useImageUpload(): UseImageUploadReturn {
       setUploadState(s => ({ ...s, status: 'uploading', progress: 60 }));
 
       const result = await fileProvider.uploadFile(file, 0);
+      console.log('[useImageUpload] request succeeded', result);
 
       setUploadState({
         status: 'success',
@@ -77,8 +85,10 @@ export function useImageUpload(): UseImageUploadReturn {
       });
 
       return result.url;
-    } catch (err: any) {
-      setUploadState(s => ({ ...s, status: 'error', error: err.message ?? 'Upload failed' }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Upload failed';
+      console.error('[useImageUpload] request failed', err);
+      setUploadState(s => ({ ...s, status: 'error', error: message }));
       return null;
     } finally {
       URL.revokeObjectURL(objectUrl);

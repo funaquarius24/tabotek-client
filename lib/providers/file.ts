@@ -4,6 +4,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const fileProvider = {
   async uploadFile(file: File, unique: number = 0): Promise<FileRecord> {
+    console.log('[fileProvider.uploadFile] request', {
+      url: `${API_BASE}/api/files/upload?unique=${unique}`,
+      filename: file.name,
+      type: file.type,
+      size: file.size,
+    });
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     let binary = '';
@@ -28,10 +34,13 @@ export const fileProvider = {
 
     if (!res.ok) {
       const error = await res.json().catch(() => ({ error: 'Upload failed' }));
+      console.error('[fileProvider.uploadFile] failed', { status: res.status, error });
       throw new Error(error.error || `HTTP ${res.status}`);
     }
 
-    return res.json();
+    const result = await res.json();
+    console.log('[fileProvider.uploadFile] response', result);
+    return result;
   },
 
   async getFiles(params?: { page?: number; limit?: number; type?: string; search?: string }): Promise<{ files: FileRecord[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {

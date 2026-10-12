@@ -51,6 +51,7 @@ function MarkdownLoader({ text, version }: { text: string; version: number }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
+    console.log('[LexicalEditor][MarkdownLoader] reload', { version, text: text.slice(-200) });
     editor.update(() => {
       $convertFromMarkdownString(text, EDITOR_TRANSFORMERS);
     });
@@ -409,20 +410,37 @@ function EditorContentSurface() {
 
 function MarkdownEmitter({
   onChange,
+  active,
 }: {
   onChange: (markdown: string) => void;
+  active: boolean;
 }) {
   const [editor] = useLexicalComposerContext();
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const activeRef = useRef(active);
   const lastEmittedRef = useRef('');
 
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
   const handleChange = useCallback(() => {
+    if (!activeRef.current) {
+      console.log('[LexicalEditor][MarkdownEmitter] SKIPPED (inactive / markdown mode)');
+      return;
+    }
     editor.read(() => {
       const markdown = $convertToMarkdownString(EDITOR_TRANSFORMERS);
       if (markdown !== lastEmittedRef.current) {
         lastEmittedRef.current = markdown;
+        console.log('[LexicalEditor][MarkdownEmitter] EMIT to markdown state:', markdown.slice(-200));
         onChangeRef.current(markdown);
+      } else {
+        console.log('[LexicalEditor][MarkdownEmitter] fired, value unchanged, skipped emit');
       }
     });
   }, [editor]);
@@ -475,19 +493,35 @@ export default function LexicalEditor({
   const { uploadState, uploadFile, reset: resetUpload } = useImageUpload();
 
   useEffect(() => {
+    console.log('[MarkdownImageDebug] LexicalEditor mounted', {
+      initialMode: mode,
+      initialMarkdownLength: markdown.length,
+    });
+    // This trace is intentionally mount-only so it identifies the active editor instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     const h = makeHtml(markdown);
     setHtml(h);
     setToc(makeToc(h));
   }, [markdown]);
 
   const toggleMode = useCallback(() => {
+    console.log('[MarkdownImageDebug] mode toggle clicked', { currentMode: mode });
+    console.log('[LexicalEditor][toggleMode]', {
+      current: mode,
+      next: mode === 'rich' ? 'markdown' : 'rich',
+      loadVersion: mode === 'markdown' ? loadVersion + 1 : loadVersion,
+    });
     if (mode === 'markdown') {
       setLoadVersion((v) => v + 1);
     }
     setMode((m) => (m === 'rich' ? 'markdown' : 'rich'));
-  }, [mode]);
+  }, [mode, loadVersion]);
 
   const handleMarkdownChange = useCallback((md: string) => {
+    console.log('[LexicalEditor][handleMarkdownChange] new markdown tail:', md.slice(-200));
     setMarkdown(md);
     const h = makeHtml(md);
     const t = makeToc(h);
@@ -496,8 +530,70 @@ export default function LexicalEditor({
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const markdownInputRef = useRef<HTMLTextAreaElement>(null);
+  const markdownCaretRef = useRef<{ start: number; end: number } | null>(null);
+
+  const handleMarkdownCaret = useCallback(() => {
+    const el = markdownInputRef.current;
+    if (!el) return;
+    markdownCaretRef.current = { start: el.selectionStart, end: el.selectionEnd };
+  }, []);
+
+  const insertMarkdownText = useCallback((text: string) => {
+    const el = markdownInputRef.current;
+    const focused = !!el && document.activeElement === el;
+    const caret = markdownCaretRef.current;
+    const currentText = el?.value ?? markdown;
+    console.log('[MarkdownImageDebug] inserting into markdown textarea', {
+      textareaExists: !!el,
+      focused,
+      currentLength: currentText.length,
+      text,
+    });
+    console.log('[LexicalEditor][insertMarkdownText]', {
+      text,
+      focused,
+      caret,
+      currentMarkdownTail: currentText.slice(-200),
+      stateMarkdownTail: markdown.slice(-200),
+    });
+    let start = currentText.length;
+    let end = currentText.length;
+    if (el && (focused || caret)) {
+      start = focused ? el.selectionStart : caret!.start;
+      end = focused ? el.selectionEnd : caret!.end;
+    }
+    start = Math.max(0, Math.min(start, currentText.length));
+    end = Math.max(start, Math.min(end, currentText.length));
+    const next = currentText.slice(0, start) + text + currentText.slice(end);
+    const insertAt = start + text.length;
+    markdownCaretRef.current = { start: insertAt, end: insertAt };
+    console.log('[LexicalEditor][insertMarkdownText] next value:', {
+      start,
+      end,
+      insertedLength: text.length,
+      nextTail: next.slice(-200),
+    });
+    handleMarkdownChange(next);
+    requestAnimationFrame(() => {
+      const updated = markdownInputRef.current;
+      if (!updated) {
+        console.log('[LexicalEditor][insertMarkdownText] textarea missing after update');
+        return;
+      }
+      updated.focus();
+      updated.setSelectionRange(insertAt, insertAt);
+      markdownCaretRef.current = { start: insertAt, end: insertAt };
+      console.log('[LexicalEditor][insertMarkdownText] caret restored', { insertAt });
+    });
+  }, [markdown, handleMarkdownChange]);
 
   const insertIntoEditor = useCallback((text: string) => {
+    console.log('[LexicalEditor][insertIntoEditor]', { mode, text });
+    if (mode === 'markdown') {
+      insertMarkdownText(text);
+      return;
+    }
     const editor = lexicalEditorRef.current;
     if (!editor) return;
     editor.update(() => {
@@ -512,9 +608,14 @@ export default function LexicalEditor({
         }
       }
     });
-  }, []);
+  }, [mode, insertMarkdownText]);
 
   const insertImageNode = useCallback((src: string, altText: string) => {
+    console.log('[LexicalEditor][insertImageNode]', { mode, src, altText });
+    if (mode === 'markdown') {
+      insertMarkdownText(`\n![${altText}](${src})\n`);
+      return;
+    }
     const editor = lexicalEditorRef.current;
     if (!editor) return;
     editor.update(() => {
@@ -529,7 +630,7 @@ export default function LexicalEditor({
       }
       $getRoot().append(imageNode);
     });
-  }, []);
+  }, [mode, insertMarkdownText]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -571,18 +672,30 @@ export default function LexicalEditor({
     setIsDragOver(false);
     dragCounterRef.current = 0;
     const files = e.dataTransfer.files;
+    console.log('[MarkdownImageDebug] drop received', { fileCount: files.length, mode });
     if (!files.length) return;
     const imageFile = Array.from(files).find((f) => f.type.startsWith('image/'));
     if (!imageFile) return;
-    const url = await uploadFile(imageFile);
-    if (url) {
-      insertImageNode(url, imageFile.name);
+    try {
+      const url = await uploadFile(imageFile);
+      console.log('[LexicalEditor][handleDrop] upload completed', { name: imageFile.name, url });
+      if (url) {
+        insertImageNode(url, imageFile.name);
+      } else {
+        console.log('[LexicalEditor][handleDrop] upload returned no URL');
+      }
+    } catch (error) {
+      console.error('[LexicalEditor][handleDrop] upload threw', error);
     }
-  }, [uploadFile, insertImageNode]);
+  }, [mode, uploadFile, insertImageNode]);
 
   const handleImageUploadClick = useCallback(() => {
+    console.log('[MarkdownImageDebug] image toolbar clicked', {
+      mode,
+      inputExists: !!imageInputRef.current,
+    });
     imageInputRef.current?.click();
-  }, []);
+  }, [mode]);
 
   const handleVideoUploadClick = useCallback(() => {
     videoInputRef.current?.click();
@@ -590,21 +703,37 @@ export default function LexicalEditor({
 
   const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log('[MarkdownImageDebug] image input changed', {
+      mode,
+      fileFound: !!file,
+      name: file?.name,
+      type: file?.type,
+      size: file?.size,
+    });
+    console.log('[LexicalEditor][handleImageFileChange] file:', file?.name, file?.type, file?.size);
     if (!file) return;
-    const url = await uploadFile(file);
-    if (url) {
-      insertImageNode(url, file.name);
+    try {
+      const url = await uploadFile(file);
+      console.log('[LexicalEditor][handleImageFileChange] upload completed', { mode, url });
+      if (url) {
+        insertImageNode(url, file.name);
+      } else {
+        console.log('[LexicalEditor][handleImageFileChange] upload returned no URL', { mode });
+      }
+    } catch (error) {
+      console.error('[LexicalEditor][handleImageFileChange] upload threw', { mode, error });
     }
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
     }
-  }, [uploadFile, insertImageNode]);
+  }, [mode, uploadFile, insertImageNode]);
 
   const handleVideoFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const result = await fileProvider.uploadFile(file, 0);
+      console.log('[LexicalEditor][handleVideoFileChange] upload result url:', result.url);
       insertIntoEditor(`\n<video src="${result.url}" controls></video>\n`);
     } catch {}
     if (videoInputRef.current) {
@@ -656,16 +785,22 @@ export default function LexicalEditor({
           mode={mode}
           onToggleMode={toggleMode}
         />
-        <MarkdownEmitter onChange={handleMarkdownChange} />
+        <MarkdownEmitter onChange={handleMarkdownChange} active={mode !== 'markdown'} />
         <div className={styles.panes}>
           <div className={styles.editorPane}>
-            {mode === 'rich' ? (
+            <div className={mode === 'rich' ? styles.editorSurface : styles.editorSurfaceHidden}>
               <EditorContentSurface />
-            ) : (
+            </div>
+            {mode === 'markdown' && (
               <textarea
+                ref={markdownInputRef}
                 className={styles.markdownInput}
                 value={markdown}
                 onChange={(e) => handleMarkdownChange(e.target.value)}
+                onSelect={handleMarkdownCaret}
+                onKeyUp={handleMarkdownCaret}
+                onClick={handleMarkdownCaret}
+                onFocus={handleMarkdownCaret}
                 placeholder="Write markdown here..."
                 spellCheck={false}
               />
