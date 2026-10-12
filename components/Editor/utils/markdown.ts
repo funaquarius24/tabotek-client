@@ -35,8 +35,20 @@ export function makeHtml(markdown: string): string {
   if (!markdown) return '';
 
   // Articles may be authored as HTML instead of Markdown. Markdown treats
-  // indented HTML blocks as code, so preserve recognized block markup first.
-  if (/<(?:h[1-6]|p|ul|ol|li|blockquote|pre|table|section|article)\b/i.test(markdown)) {
+  // indented HTML blocks as code, so preserve block markup when the content
+  // is pure HTML. If real markdown syntax is present (images, links,
+  // headings, lists, code, quotes), convert it so those features render.
+  const hasHtmlBlock = /<(?:h[1-6]|p|ul|ol|li|blockquote|pre|table|section|article)\b/i.test(markdown);
+  const hasMarkdownSyntax =
+    /(^|\n)[ \t]{0,3}(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|```|>|~)/m.test(markdown) ||
+    /!\[[^\]]*\]\([^)]*\)/.test(markdown) ||
+    /\[[^\]]+\]\([^)]*\)/.test(markdown);
+
+  if (hasHtmlBlock) {
+    console.log('[makeHtml] html block detected', { hasMarkdownSyntax, rawPassthrough: !hasMarkdownSyntax });
+  }
+
+  if (hasHtmlBlock && !hasMarkdownSyntax) {
     return markdown.trim();
   }
 
