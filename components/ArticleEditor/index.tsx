@@ -46,6 +46,7 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
   const { addToast } = useToast();
 
   const { data: existingArticle } = useArticle(editId ?? '');
+  const publishedRef = useRef(false);
 
   const createArticle = useCreateArticle();
   const updateArticle = useUpdateArticle();
@@ -71,6 +72,8 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
   const [editorKey, setEditorKey] = useState('new');
 
   useEffect(() => {
+    if (publishedRef.current || !existingArticle || !editId) return;
+
     if (existingArticle && editId) {
       setEditorKey(editId);
       setDraft({
@@ -186,8 +189,33 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
       }
 
       const newId = (response as any)?._id ?? draft.id;
-      setDraft(prev => ({ ...prev, id: newId }));
-      setHasSaved(true);
+      if (status === 'published') {
+        // Keep the editor blank after the server has confirmed publication.
+        // This is intentionally not done for drafts or failed requests.
+        publishedRef.current = true;
+        setDraft({
+          id: null,
+          title: '',
+          content: '',
+          html: '',
+          toc: [],
+          summary: '',
+          password: '',
+          allowComments: true,
+          allowCommenterEdit: true,
+          allowCommenterDelete: true,
+          isRecommended: false,
+          categoryId: '',
+          tags: [],
+          coverImage: '',
+        });
+        setEditorKey(`new-${Date.now()}`);
+        setHasSaved(false);
+        setSettingsOpen(false);
+      } else {
+        setDraft(prev => ({ ...prev, id: newId }));
+        setHasSaved(true);
+      }
 
       addToast(
         status === 'published' ? 'Article published successfully!' : 'Article saved as draft',
@@ -218,9 +246,10 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
   }, []);
 
   const handleDelete = useCallback(() => {
+    if (!draft.id || deleteArticle.isPending) return;
+
     const confirmed = window.confirm('Are you sure you want to delete this article? This action cannot be undone.');
     if (!confirmed) return;
-    if (!draft.id) return;
 
     deleteArticle.mutate(draft.id, {
       onSuccess: () => {
@@ -323,8 +352,12 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
             Preview
           </button>
           {draft.id && (
-            <button className={`${styles.btn} ${styles.btnDelete}`} onClick={handleDelete}>
-              Delete
+            <button
+              className={`${styles.btn} ${styles.btnDelete}`}
+              onClick={handleDelete}
+              disabled={deleteArticle.isPending || saving}
+            >
+              {deleteArticle.isPending ? 'Deleting...' : 'Delete'}
             </button>
           )}
           <span className={styles.autoSaveIndicator}>
