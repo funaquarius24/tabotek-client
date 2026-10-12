@@ -680,7 +680,8 @@ export default function LexicalEditor({
       const url = await uploadFile(imageFile);
       console.log('[LexicalEditor][handleDrop] upload completed', { name: imageFile.name, url });
       if (url) {
-        insertImageNode(url, imageFile.name);
+        const alt = window.prompt('Alt text for image:', imageFile.name)?.trim() || '';
+        insertImageNode(url, alt);
       } else {
         console.log('[LexicalEditor][handleDrop] upload returned no URL');
       }
@@ -716,7 +717,8 @@ export default function LexicalEditor({
       const url = await uploadFile(file);
       console.log('[LexicalEditor][handleImageFileChange] upload completed', { mode, url });
       if (url) {
-        insertImageNode(url, file.name);
+        const alt = window.prompt('Alt text for image:', file.name)?.trim() || '';
+        insertImageNode(url, alt);
       } else {
         console.log('[LexicalEditor][handleImageFileChange] upload returned no URL', { mode });
       }
