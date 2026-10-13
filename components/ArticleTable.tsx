@@ -69,6 +69,11 @@ export default function ArticleTable({ articles, showCategory, showAuthor, showC
             cell: ({ row }) => (
               <span className="text-sm text-gray-700">
                 {row.original.author?.name || '-'}
+                {row.original.editors?.length ? (
+                  <span className="text-gray-500">
+                    {' '}· Edited by {row.original.editors.map(e => e.name).join(', ')}
+                  </span>
+                ) : null}
               </span>
             ),
           } as ColumnDef<ArticleResponse>,

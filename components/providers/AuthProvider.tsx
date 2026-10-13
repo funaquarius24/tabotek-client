@@ -7,6 +7,7 @@ interface User {
   _id: string;
   email: string;
   name: string;
+  authorName?: string;
   role: string;
 }
 
@@ -16,6 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   userSettings: Record<string, unknown>;
   updateSettings: (settings: Record<string, unknown>) => Promise<void>;
+  refreshSession: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -25,6 +27,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   userSettings: {},
   updateSettings: async () => {},
+  refreshSession: async () => {},
   signOut: async () => {},
 });
 
@@ -71,6 +74,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserSettings(settings);
   }, []);
 
+  const refreshSession = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/session');
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      }
+    } catch {
+      // keep current user on failure
+    }
+  }, []);
+
   const signOut = async () => {
     await fetch('/api/auth/signout', { method: 'POST' });
     setUser(null);
@@ -79,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, userSettings, updateSettings, signOut }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, userSettings, updateSettings, refreshSession, signOut }}>
       {children}
     </AuthContext.Provider>
   );

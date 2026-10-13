@@ -175,6 +175,9 @@ export default function ArticlePage() {
         </h1>
         <div className="flex items-center text-sm text-gray-500 mb-8">
           <span className="mr-4">By {article.author?.name || article.authorName || 'Unknown Author'}</span>
+          {article.editors?.length ? (
+            <span className="mr-4">Edited by {article.editors.map((e: any) => e.name).join(', ')}</span>
+          ) : null}
           <span className="mr-4">·</span>
           <span>{article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</span>
           <span className="mx-4">·</span>

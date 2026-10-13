@@ -256,6 +256,14 @@ export async function saveUserSettings(settings: Record<string, unknown>) {
   });
 }
 
+// Author name (pen name) — self-service for the logged-in user
+export async function updateAuthorName(authorName: string) {
+  return fetchAPI<{ success: boolean; authorName: string }>('/api/auth/author-name', {
+    method: 'PUT',
+    body: JSON.stringify({ authorName }),
+  });
+}
+
 // Site Settings (global, admin-only)
 export async function getSiteSettings() {
   return fetchAPI<{ settings: Record<string, unknown> }>('/api/admin/site-settings');

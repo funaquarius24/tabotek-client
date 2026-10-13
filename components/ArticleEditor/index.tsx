@@ -254,13 +254,18 @@ export default function ArticleEditor({ canPublish = false, userRole, articleId 
     deleteArticle.mutate(draft.id, {
       onSuccess: () => {
         addToast('Article deleted', 'success');
-        router.push('/admin/articles');
+        const listPath = user?.role === 'editor'
+          ? '/editor/articles'
+          : user?.role === 'author'
+            ? '/author/articles'
+            : '/admin/articles';
+        router.push(listPath);
       },
       onError: (err: any) => {
         addToast(err?.message ?? 'Failed to delete article', 'error');
       },
     });
-  }, [draft.id, deleteArticle, addToast, router]);
+  }, [draft.id, deleteArticle, addToast, router, user?.role]);
 
   const handlePreview = useCallback(() => {
     const systemUrl = process.env.NEXT_PUBLIC_SYSTEM_URL || '';
